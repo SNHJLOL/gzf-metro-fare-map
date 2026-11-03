@@ -6,7 +6,9 @@
 
 ## 直接看效果
 
-打开仓库根目录的 [`广州地铁票价地图.html`](./广州地铁票价地图.html)，双击即可在浏览器里运行——无需服务器、无需联网、没有任何外部请求。
+- **在线版（已上线，手机/桌面通用）**：<https://gzf-metro-fare-map.app.workbuddy.host/?sharecode=KSVY7ZWEJJ>
+- **源码仓库**：<https://github.com/SNHJLOL/gzf-metro-fare-map>
+- **本地单文件**：打开仓库根目录的 [`广州地铁票价地图.html`](./广州地铁票价地图.html)，双击即可在浏览器里运行——无需服务器、无需联网、没有任何外部请求。
 
 ## 功能
 
