@@ -1,0 +1,1983 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#080c11">
+<title>广佛地铁 · 票价可达图</title>
+<meta name="description" content="广州 + 佛山地铁线网：以任一车站为起点，按最短乘车路径的轨道里程划分票价，看每档票价能到哪些车站。">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%230a0e13' stroke='%234ea8ff' stroke-width='2'/><circle cx='16' cy='16' r='8.5' fill='none' stroke='%2322d3ee' stroke-width='1.6'/><circle cx='16' cy='16' r='3.4' fill='%234ade80'/></svg>">
+<style>
+:root{
+  --bg:#080c11;
+  --panel:#0f151d;
+  --panel2:#141c26;
+  --line:#1e2733;
+  --text:#e9eff7;
+  --dim:#7d8ea3;
+  --dim2:#54626f;
+  --accent:#4a9eff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:14px; -webkit-font-smoothing:antialiased; overflow:hidden;
+  -webkit-tap-highlight-color:transparent;
+}
+.app{display:grid;grid-template-columns:1fr 372px;grid-template-rows:auto 1fr;height:100vh;height:calc(var(--vh, 1vh) * 100)}
+
+header{
+  grid-column:1/-1;display:flex;align-items:center;gap:18px;
+  padding:0 22px;height:60px;border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,#0d131b,#0a0f15);
+}
+.brand{display:flex;align-items:baseline;gap:10px;flex-shrink:0}
+.brand h1{font-size:15.5px;font-weight:650;letter-spacing:.02em}
+.brand h1 em{font-style:normal;color:var(--accent)}
+.brand h1 .dot{color:var(--dim2)}
+.brand span{font-size:11.5px;color:var(--dim2);letter-spacing:.03em}
+.brand span i{font-style:normal;color:#8b9cb0;font-variant-numeric:tabular-nums}
+.spacer{flex:1}
+.search{position:relative;width:250px}
+.search input{
+  width:100%;height:34px;border-radius:9px;border:1px solid var(--line);
+  background:var(--panel2);color:var(--text);padding:0 34px 0 32px;
+  font-size:13px;font-family:inherit;outline:none;transition:.18s;
+}
+.search input:focus{border-color:#2f5f96;background:#16202b;box-shadow:0 0 0 3px rgba(74,158,255,.1)}
+.search input::placeholder{color:var(--dim2)}
+.search .ic{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--dim2);font-size:13px;pointer-events:none}
+.sug{
+  position:absolute;top:40px;left:0;right:0;background:#131b25;border:1px solid var(--line);
+  border-radius:10px;overflow:hidden;z-index:60;box-shadow:0 14px 34px rgba(0,0,0,.55);display:none;
+}
+.sug.on{display:block}
+.sug div{padding:8px 12px;font-size:13px;cursor:pointer;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.sug div:hover{background:#1d2836}
+.sug small{color:var(--dim2);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+
+.mapwrap{position:relative;overflow:hidden;min-width:0;touch-action:none;background:radial-gradient(ellipse at 50% 50%,#0d1620 0%,#080c11 62%);
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+svg#map{width:100%;height:100%;display:block;cursor:grab}
+svg#map:active{cursor:grabbing}
+.legend{
+  position:absolute;left:18px;bottom:16px;display:flex;flex-wrap:wrap;gap:3px 0;align-items:center;
+  background:rgba(12,18,25,.82);backdrop-filter:blur(10px);
+  border:1px solid var(--line);border-radius:10px;padding:8px 11px;font-size:11px;
+  max-width:calc(100% - 36px);
+}
+.legend b{font-weight:600;color:var(--dim);margin-right:9px;letter-spacing:.03em}
+.legend .sw{display:flex;align-items:center;gap:4px;color:var(--dim2);margin-right:9px}
+.legend .sw i{width:14px;height:3px;border-radius:2px;display:block}
+.hint{
+  position:absolute;right:18px;bottom:16px;font-size:11px;color:var(--dim2);
+  background:rgba(12,18,25,.8);backdrop-filter:blur(8px);border:1px solid var(--line);
+  border-radius:9px;padding:7px 11px;line-height:1.55;max-width:302px;text-align:right;
+}
+.hint b{color:var(--dim);font-weight:500}
+.scalebar{
+  position:absolute;left:18px;top:16px;display:flex;flex-direction:column;gap:5px;
+  font-size:10.5px;color:var(--dim2);letter-spacing:.03em;
+}
+.scalebar .bar{height:5px;border-left:1px solid var(--dim2);border-right:1px solid var(--dim2);border-bottom:1px solid var(--dim2);width:80px}
+.tierbadge{
+  position:absolute;left:16px;top:56px;display:none;align-items:center;gap:9px;
+  background:rgba(12,18,25,.88);backdrop-filter:blur(10px);
+  border:1px solid #26313e;border-radius:10px;padding:7px 12px 7px 11px;
+  font-size:12px;cursor:pointer;transition:.16s;
+}
+.tierbadge.on{display:flex}
+.tierbadge:hover{border-color:#3a4b5e;background:rgba(20,28,38,.94)}
+.tierbadge i{width:9px;height:9px;border-radius:50%;display:block;flex-shrink:0}
+.tierbadge b{font-size:13px;font-weight:650}
+.tierbadge small{color:var(--dim2);font-size:10.5px;letter-spacing:.02em}
+.tierbadge em{font-style:normal;color:#48596a;font-size:10.5px;border-left:1px solid #26313e;padding-left:9px;margin-left:1px}
+.mapbtns{position:absolute;right:16px;top:16px;display:flex;gap:6px;z-index:6}
+.mapbtn{
+  font-family:inherit;font-size:11px;padding:6px 11px;border-radius:8px;cursor:pointer;line-height:1.2;
+  background:rgba(12,18,25,.82);backdrop-filter:blur(10px);border:1px solid #26313e;color:#95a7b9;
+  transition:.15s;
+}
+.mapbtn:hover{background:rgba(20,28,38,.94);border-color:#3a4b5e;color:#dbe6f2}
+.mapbtn.on{background:rgba(74,158,255,.13);border-color:#2f5f96;color:#8cc3ff}
+.legend .sw.on{color:var(--text);font-weight:650}
+.legend .sw.on i{height:5px}
+
+.tip{
+  position:absolute;pointer-events:none;opacity:0;transform:translate(-50%,-135%);
+  background:#131b25;border:1px solid #2a3644;border-radius:9px;padding:8px 11px;
+  font-size:12px;line-height:1.6;white-space:nowrap;z-index:70;
+  box-shadow:0 10px 26px rgba(0,0,0,.6);transition:opacity .12s;
+}
+.tip.on{opacity:1}
+.tip .tn{font-weight:650;font-size:13px;margin-bottom:3px}
+.tip .tr{color:var(--dim);font-size:11.5px}
+.tip .tp{font-weight:700;font-size:15px}
+
+aside{
+  min-width:0;
+  border-left:1px solid var(--line);background:linear-gradient(180deg,#0d141b,#0a1016);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.oblock{padding:13px 18px 12px;border-bottom:1px solid var(--line)}
+.olabel{font-size:10.5px;letter-spacing:.12em;color:var(--dim2);text-transform:uppercase;margin-bottom:8px}
+.oname{font-size:22px;font-weight:650;letter-spacing:.01em;display:flex;align-items:center;gap:9px;line-height:1.25}
+.oname .pin{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px rgba(74,158,255,.16),0 0 12px rgba(74,158,255,.65);flex-shrink:0}
+.olines{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+.olines span{font-size:10.5px;padding:2.5px 7px;border-radius:5px;color:#fff;font-weight:600;letter-spacing:.02em}
+
+/* 起点统计：平均票价 / 均价排名 */
+.ostats{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}
+.ostat{background:#121b24;border:1px solid #1d2733;border-radius:8px;padding:5px 9px 6px;min-width:0}
+#stRank{cursor:pointer;transition:.15s}
+#stRank:hover{background:#16212c;border-color:#2c3d4f}
+.ostat .k{display:block;font-size:10px;color:var(--dim2);letter-spacing:.05em;margin-bottom:1px}
+.ostat .v{display:flex;align-items:baseline;gap:2px;font-size:15.5px;font-weight:680;font-variant-numeric:tabular-nums;line-height:1.25}
+.ostat .v i{font-style:normal;font-size:10.5px;color:var(--dim2);font-weight:500;margin-left:1px}
+.ostat .v em{font-style:normal;font-size:10px;color:#45525f;font-weight:500;margin-left:auto;letter-spacing:.01em}
+.ostat .v.wait{color:#4b5b6b}
+.hot{margin-top:11px}
+.hot .ht{font-size:10.5px;color:var(--dim2);margin-bottom:7px;letter-spacing:.06em}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{
+  font-family:inherit;font-size:11.5px;padding:4.5px 9px;border-radius:7px;cursor:pointer;
+  background:#161f29;border:1px solid #222d3a;color:#a9b8c9;transition:.15s;
+}
+.chips button:hover{background:#1e2937;color:#dbe6f2;border-color:#324252}
+.chips button.act{background:rgba(74,158,255,.14);border-color:#2f5f96;color:#8cc3ff}
+
+.tiers{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:8px 10px 4px}
+.tiers::-webkit-scrollbar{width:6px}
+
+/* 视图切换 */
+.tabs{display:flex;gap:2px;padding:8px 12px 0;border-bottom:1px solid var(--line);flex-shrink:0}
+.tabs button{
+  font-family:inherit;font-size:12px;padding:7px 13px;border-radius:7px 7px 0 0;
+  background:none;border:none;color:var(--dim2);cursor:pointer;position:relative;transition:.15s;
+}
+.tabs button:hover{color:#a9b8c9}
+.tabs button.on{color:var(--text);background:#121a24}
+.tabs button.on::after{content:'';position:absolute;left:13px;right:13px;bottom:-1px;height:2px;background:var(--accent);border-radius:2px}
+.tabs button span{color:var(--dim2);font-size:10px;margin-left:5px;line-height:1;vertical-align:1px}
+
+/* 全部车站清单 */
+.alllist{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:2px 0 6px}
+.alllist::-webkit-scrollbar{width:6px}
+.alllist::-webkit-scrollbar-thumb{background:#212c39;border-radius:3px}
+.alllist::-webkit-scrollbar-track{background:transparent}
+.hide{display:none !important}
+.srow{padding:7px 16px 8px;border-bottom:1px solid #141c25;cursor:pointer;transition:background .12s}
+.srow:hover{background:#111a23}
+.srow.open{background:#101922}
+.sl1{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.sname{font-size:13.5px;font-weight:600;letter-spacing:.01em}
+.smeta{font-size:11px;color:var(--dim2);white-space:nowrap;font-variant-numeric:tabular-nums}
+.smeta b{color:#cfe0f2;font-size:12.5px;font-weight:650}
+.smeta em{font-style:normal;font-weight:700;font-size:12.5px}
+.sl2{display:flex;align-items:center;gap:3px;margin-top:5px;flex-wrap:wrap}
+.rt{font-size:10px;padding:1.5px 6px;border-radius:4px;color:#fff;font-weight:600;letter-spacing:.02em}
+.arw{color:#3d4a57;font-size:10px;margin:0 1px}
+.tp{font-size:10px;color:var(--dim2);margin-left:5px}
+.tp.xf{color:#7f93a8}
+.sdetail{display:none;margin:9px 0 2px;padding-left:9px;border-left:2px solid #1e2733}
+.srow.open .sdetail{display:block}
+.step{display:flex;gap:8px;font-size:11px;color:var(--dim);line-height:1.9;align-items:flex-start}
+.step i{width:7px;height:7px;border-radius:2px;margin-top:7px;flex-shrink:0;display:block}
+.step b{color:#cfdcea;font-weight:650;font-size:11px}
+.step .km{margin-left:auto;color:var(--dim2);font-variant-numeric:tabular-nums;white-space:nowrap;padding-left:8px}
+.note{font-size:10px;color:#4b5b6b;margin-top:7px;line-height:1.5;letter-spacing:.01em}
+.seto{
+  margin-top:8px;font-family:inherit;font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;
+  background:rgba(74,158,255,.12);border:1px solid #2f5f96;color:#8cc3ff;
+}
+.seto:hover{background:rgba(74,158,255,.2)}
+
+/* 均价排行 */
+.rank{flex:1;min-height:0;display:flex;flex-direction:column}
+.rkhead{display:flex;align-items:center;gap:8px;padding:8px 14px 7px;border-bottom:1px solid #161f29;flex-shrink:0}
+.rkhead .rknote{font-size:10px;color:var(--dim2);line-height:1.45;letter-spacing:.01em}
+.rkhead .rknote b{color:#9fb0c2;font-weight:600}
+.rkhead button{
+  margin-left:auto;flex-shrink:0;font-family:inherit;font-size:10.5px;padding:3.5px 8px;border-radius:6px;
+  background:#161f29;border:1px solid #222d3a;color:#9fb0c2;cursor:pointer;transition:.15s;white-space:nowrap;
+}
+.rkhead button:hover{background:#1e2937;color:#dbe6f2;border-color:#324252}
+.rklist{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:0 0 6px}
+.rklist::-webkit-scrollbar{width:6px}
+.rklist::-webkit-scrollbar-thumb{background:#212c39;border-radius:3px}
+.rklist::-webkit-scrollbar-track{background:transparent}
+.rkrow{
+  display:grid;grid-template-columns:30px 1fr auto;gap:9px;align-items:start;
+  padding:6px 14px 7px 10px;border-bottom:1px solid #141c25;cursor:pointer;transition:background .12s;
+}
+.rkrow:hover{background:#111a23}
+.rkrow.cur{background:#0f1a24}
+.rkrow.cur .rkname{color:#cfe6ff}
+.rkno{font-size:11px;line-height:17.5px;color:#4a5a68;text-align:right;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.rkrow.cur .rkno{color:#8cc3ff;font-weight:650}
+.rkmain{min-width:0}
+.rkname{display:block;font-size:13px;font-weight:600;line-height:1.35;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rksub{display:block;font-size:10px;color:var(--dim2);letter-spacing:.01em;margin-top:1px;line-height:14px}
+.rkavg{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;line-height:17.5px}
+.rkavg b{font-size:14px;font-weight:680}
+.rkavg i{font-style:normal;font-size:10px;color:var(--dim2);margin-left:2px}
+.rkempty{padding:30px 18px;text-align:center;color:var(--dim2);font-size:12px;line-height:1.8}
+.tiers::-webkit-scrollbar-thumb{background:#212c39;border-radius:3px}
+.tiers::-webkit-scrollbar-track{background:transparent}
+
+.tier{border-radius:9px;margin-bottom:2px;border:1px solid transparent;transition:.15s;overflow:hidden}
+.tier.open{background:#121a24;border-color:#223040}
+.tier.cur{border-color:#1d2a38;background:#0e161f}
+.tier.cur .trow .p{color:#e2eefb}
+.tier.ovrow{margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #1a232e;border-radius:0;position:sticky;top:0;z-index:6;background:#0d141b}
+.tier.ovrow.open{background:#0d141b;border-color:transparent}
+.tier.ovrow .trow .p{color:#cfe0f2}
+.trow{
+  display:grid;grid-template-columns:3px 1fr auto;gap:10px;align-items:center;
+  padding:6px 11px;cursor:pointer;border-radius:9px;transition:.15s;
+}
+.trow:hover{background:#131c26}
+.tier.open .trow:hover{background:transparent}
+.trow .bar{width:3px;height:20px;border-radius:2px}
+.trow .mid{min-width:0}
+.trow .p{font-size:13px;font-weight:650;display:block;line-height:1.25}
+.trow .p i{font-style:normal;font-size:10.5px;font-weight:500;color:var(--dim2);letter-spacing:.02em;margin-left:6px}
+.trow .c{font-size:10.5px;line-height:1.4;color:var(--dim2);margin-top:0;letter-spacing:.02em}
+.trow .n{font-size:12.5px;color:var(--dim);font-variant-numeric:tabular-nums;font-weight:600}
+.trow .n b{color:var(--text);font-size:14px}
+.tbody{display:none;padding:2px 11px 12px 24px}
+.tier.open .tbody{display:block}
+.tbody .far{font-size:11px;color:var(--dim2);margin-bottom:9px;line-height:1.5}
+.tbody .far b{color:#b9c8d8;font-weight:600}
+.slist{display:flex;flex-wrap:wrap;gap:4px}
+.slist button{
+  font-family:inherit;font-size:11px;padding:3px 7px;border-radius:5px;cursor:pointer;
+  background:#18222d;border:1px solid #233040;color:#9fb0c2;transition:.13s;line-height:1.4;
+}
+.slist button:hover{background:#22303f;color:#e2ecf7;border-color:#3a4b5e}
+.slist button.xf{color:#cfdcea;border-color:#2c3d4f;background:#1b2836}
+
+.empty{padding:26px 18px;text-align:center;color:var(--dim2);font-size:12px;line-height:1.7}
+
+.pfoot{
+  flex-shrink:0;
+  border-top:1px solid var(--line);padding:9px 18px 11px;font-size:10px;line-height:1.6;color:var(--dim2);
+  background:#0a1016;
+}
+.pfoot b{color:var(--dim);font-weight:600}
+.pfoot .k{color:#8fa3b8}
+
+/* ---------- 手机端专用元素（桌面隐藏） ---------- */
+.hicon{display:none}
+.sclose{display:none}
+.sheetgrip{display:none}
+.toast{
+  position:absolute;left:50%;bottom:46px;transform:translateX(-50%);z-index:75;
+  background:rgba(10,16,22,.93);border:1px solid #26313e;border-radius:18px;
+  padding:7px 13px;font-size:11.5px;color:#a9b8c9;white-space:nowrap;
+  pointer-events:none;opacity:0;transition:opacity .45s;
+}
+.toast.on{opacity:1}
+.modal{
+  position:fixed;top:0;right:0;bottom:0;left:0;z-index:200;display:none;align-items:flex-end;justify-content:center;
+  background:rgba(4,8,12,.66);backdrop-filter:blur(3px);
+}
+.modal.on{display:flex}
+.mcard{
+  width:100%;max-width:520px;background:#0f161e;border:1px solid var(--line);
+  border-radius:16px 16px 0 0;padding:16px 18px 20px;
+  padding-bottom:calc(20px + env(safe-area-inset-bottom));
+  max-height:80vh;overflow:auto;animation:mup .22s ease-out;
+}
+@keyframes mup{from{transform:translateY(24px);opacity:.4}to{transform:none;opacity:1}}
+.mcard h3{font-size:14px;font-weight:650;display:flex;align-items:center;margin-bottom:11px}
+.mcard h3 button{
+  margin-left:auto;background:none;border:none;color:var(--dim);font-size:22px;line-height:1;
+  cursor:pointer;padding:0 2px;font-family:inherit;
+}
+.mcard p{font-size:12.5px;line-height:1.8;color:#a8b7c7;margin-bottom:9px}
+.mcard p b{color:var(--text);font-weight:650}
+.mcard p .k{color:#8fa3b8}
+
+@media (max-width:940px){
+  .app{display:flex;flex-direction:column;height:100vh;height:calc(var(--vh, 1vh) * 100);overflow:hidden}
+  header{
+    flex:0 0 auto;position:relative;z-index:90;gap:6px;
+    height:50px;padding:0 10px;
+  }
+  .brand h1{font-size:14px}
+  .brand h1 em{display:none}
+  .brand h1 .dot{display:none}
+  .brand span{display:none}
+  .hicon{
+    display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+    width:34px;height:34px;border-radius:9px;padding:0;cursor:pointer;
+    font-family:inherit;font-size:17px;line-height:1;
+    background:var(--panel2);border:1px solid var(--line);color:#95a7b9;transition:.15s;
+  }
+  .hicon:active{background:#1d2836}
+  .hicon.on{background:rgba(74,158,255,.14);border-color:#2f5f96;color:#8cc3ff}
+  .search{
+    position:absolute;left:10px;right:10px;top:8px;width:auto;z-index:95;
+    opacity:0;pointer-events:none;transform:translateY(-6px);transition:.18s;
+  }
+  .search.expand{opacity:1;pointer-events:auto;transform:none}
+  .search input{height:34px;font-size:13px;background:#16202b;padding-right:40px}
+  .search .sclose{
+    display:block;position:absolute;right:3px;top:50%;transform:translateY(-50%);
+    width:32px;height:32px;border:none;background:none;border-radius:8px;padding:0;
+    color:#8b9cb0;font-size:20px;line-height:1;font-family:inherit;cursor:pointer;
+  }
+  .search .sclose:active{background:rgba(255,255,255,.07)}
+  .sug{top:39px;max-height:54vh;overflow:auto}
+  .mapwrap{flex:1 1 auto;min-height:150px}
+  aside{
+    flex:0 0 auto;height:47%;max-height:470px;min-height:250px;
+    border-left:none;border-top:1px solid var(--line);
+    transition:height .22s cubic-bezier(.4,0,.2,1);
+  }
+  /* 收起面板：只留起点 + 三个 tab，把屏幕让给地图 */
+  .app.mini aside{height:122px;min-height:0}
+  .app.mini aside .tiers,.app.mini aside .alllist,.app.mini aside .rank{display:none}
+  .sheetgrip{
+    display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+    height:16px;width:100%;padding:0;border:none;background:none;cursor:pointer;
+  }
+  .sheetgrip span{width:38px;height:4px;border-radius:2px;background:#2b3949;transition:background .2s}
+  .sheetgrip:active span{background:#3d4f63}
+
+  .oblock{padding:8px 12px 8px;display:flex;align-items:center;gap:9px}
+  .ohead{flex:1 1 auto;min-width:0}
+  .olabel{display:none}
+  .oname{font-size:17px;gap:7px}
+  .oname .pin{width:6px;height:6px;box-shadow:0 0 0 3px rgba(74,158,255,.16),0 0 9px rgba(74,158,255,.6)}
+  .olines{gap:4px;margin-top:5px}
+  .olines span{font-size:10px;padding:2px 6px}
+  .ostats{flex:0 0 auto;display:flex;gap:5px;margin-top:0}
+  .ostat{padding:4px 8px 5px;border-radius:7px}
+  .ostat .k{font-size:9px;letter-spacing:.02em;margin-bottom:0}
+  .ostat .v{font-size:14px}
+  #stAvg .v em{display:none}
+  .hot{display:none}
+
+  .tabs{padding:0 4px;gap:0}
+  .tabs button{flex:1 1 0;min-width:0;font-size:12.5px;padding:11px 3px;border-radius:0;text-align:center}
+  .tabs button.on{background:none}
+  .tabs button.on::after{left:16%;right:16%;bottom:0}
+  .tiers{padding:6px 8px 8px}
+  .alllist{padding:0 0 8px}
+  .rklist{padding-bottom:8px}
+  .srow{padding:8px 12px 9px}
+  .rkrow{padding:7px 12px 7px 8px;grid-template-columns:26px 1fr auto;gap:7px}
+  .rkhead{padding:7px 12px 6px}
+
+  .pfoot{display:none}
+
+  .legend{
+    left:8px;right:8px;bottom:8px;max-width:none;padding:6px 8px;border-radius:8px;
+    display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;
+    font-size:10.5px;scrollbar-width:none;-webkit-overflow-scrolling:touch;
+  }
+  .legend::-webkit-scrollbar{display:none}
+  .legend b{margin-right:7px;font-size:10px;flex:0 0 auto}
+  .legend .sw{margin-right:9px;flex:0 0 auto}
+  .legend .sw i{width:9px;height:9px;border-radius:2px}
+  .legend .sw.on i{height:9px}
+  .hint{display:none}
+  .scalebar{display:none}
+  .tierbadge{left:8px;top:8px;padding:6px 9px;font-size:11px;z-index:7}
+  .tierbadge b{font-size:12px}
+  .tierbadge small{font-size:10px}
+  .tierbadge em{display:none}
+  .mapbtns{right:8px;top:8px;gap:5px}
+  .mapbtn{font-size:10.5px;padding:5px 8px}
+}
+
+/* 横屏手机：回到左右分栏 */
+@media (max-width:940px) and (orientation:landscape) and (max-height:560px){
+  .app{display:grid;grid-template-columns:1fr 320px;grid-template-rows:auto 1fr;height:100vh;height:calc(var(--vh, 1vh) * 100)}
+  header{grid-column:1/-1;height:46px}
+  aside{height:auto;max-height:none;min-height:0;border-top:none;border-left:1px solid var(--line)}
+  .legend{display:none}
+  .tabs button{padding:9px 3px}
+  .sheetgrip{display:none}
+  .app.mini aside{height:auto}
+}
+
+/* 小屏（≤390）再压一档 */
+@media (max-width:390px){
+  .brand h1{font-size:13px}
+  .oname{font-size:16px}
+  .ostat{padding:3px 7px 4px}
+  .ostat .v{font-size:13px}
+  .tabs button{font-size:12px}
+}
+
+</style>
+<script>
+/* 手机上 dvh 在部分内核（X5 / 旧 Chrome）不认，会让布局比可视区高、头部被顶出屏幕。
+   这里用 visualViewport 实测高度写进 --vh，CSS 里全用它，不再依赖 dvh。 */
+(function () {
+  function setVH() {
+    var h = (window.visualViewport && window.visualViewport.height) || window.innerHeight || 0;
+    if (h > 0) document.documentElement.style.setProperty('--vh', (h / 100) + 'px');
+  }
+  setVH();
+  window.addEventListener('resize', setVH);
+  window.addEventListener('orientationchange', function () { setTimeout(setVH, 200); });
+  if (window.visualViewport && window.visualViewport.addEventListener) {
+    window.visualViewport.addEventListener('resize', setVH);
+  }
+  window.addEventListener('load', function () { setVH(); window.scrollTo(0, 0); });
+})();
+</script>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <h1>广佛地铁<span class="dot"> · </span><em>票价可达图</em></h1>
+      <span>按最短乘车路径的轨道里程计价 / <i id="hdrN">359</i> 站</span>
+    </div>
+    <div class="spacer"></div>
+    <button class="hicon" id="btnSearch" aria-label="搜索车站">⌕</button>
+    <button class="hicon" id="btnInfo" aria-label="计价规则">i</button>
+    <div class="search" id="searchBox">
+      <span class="ic">⌕</span>
+      <input id="q" type="text" placeholder="搜索车站 / 拼音" autocomplete="off">
+      <button class="sclose" id="sClose" aria-label="关闭">×</button>
+      <div class="sug" id="sug"></div>
+    </div>
+  </header>
+
+  <div class="mapwrap" id="mapwrap">
+    <svg id="map">
+      <g id="gWorld">
+          <g id="gLines"></g>
+        <g id="gPath"></g>
+        <g id="gStations"></g>
+        <g id="gOrigin"></g>
+      </g>
+      <g id="gLabels"></g>
+    </svg>
+    <div class="scalebar"><div class="bar" id="sbar"></div><span id="stxt">10 km</span></div>
+    <div class="tierbadge" id="tierBadge"></div>
+    <div class="mapbtns">
+      <button class="mapbtn on" id="btnLabel" title="切换站名显示方式">站名 · 仅换乘</button>
+      <button class="mapbtn" id="btnReset" title="回到默认视野">重置视野</button>
+    </div>
+    <div class="toast" id="toast"></div>
+    <div class="legend" id="legend"></div>
+    <div class="hint">里程按<b>最短乘车路径</b>计算，含换乘绕行<br>站名只标换乘站（右上可切换）· 点站点换起点</div>
+    <div class="tip" id="tip"></div>
+  </div>
+
+  <aside>
+    <button class="sheetgrip" id="sheetGrip" aria-label="收起 / 展开面板"><span></span></button>
+    <div class="oblock">
+      <div class="ohead">
+        <div class="olabel">起点站</div>
+        <div class="oname"><span class="pin"></span><span id="oName">—</span></div>
+        <div class="olines" id="oLines"></div>
+      </div>
+      <div class="ostats">
+        <div class="ostat" id="stAvg" title="从该站到其余 358 座车站的票价算术平均"><span class="k">平均票价</span><span class="v">—</span></div>
+        <div class="ostat" id="stRank" title="全部 359 座车站按平均票价由低到高排名，点开查看完整排行"><span class="k">均价排名</span><span class="v">—</span></div>
+      </div>
+      <div class="hot">
+        <div class="ht">热门起点</div>
+        <div class="chips" id="hotChips"></div>
+      </div>
+    </div>
+    <div class="tabs">
+      <button data-tab="tier" class="on">票价档位</button>
+      <button data-tab="all">全部车站<span id="allCount"></span></button>
+      <button data-tab="rank">均价排行<span id="rankCount"></span></button>
+    </div>
+    <div class="tiers" id="tiers"></div>
+    <div class="alllist hide" id="allList"></div>
+    <div class="rank hide" id="rankPanel">
+      <div class="rkhead">
+        <span class="rknote">均价 = 从该站到其余 <b id="rkCnt">358</b> 站的票价算术平均</span>
+        <button id="rkSort" title="点击切换排序方向">由低到高 ↑</button>
+      </div>
+      <div class="rklist" id="rkList"><div class="rkempty">正在计算全部起点的平均票价…</div></div>
+    </div>
+    <div class="pfoot">
+      <b>计价规则</b>　0–4km 2元，4–12km 每 4km 加 1 元，12–24km 每 6km 加 1 元，24km 以上每 8km 加 1 元，最高 20 元。<br>
+      <span class="algo"><span class="k">里程算法</span>：在线网拓扑上跑最短路，站间取相邻两站的实际距离累加，因此保留了换乘绕行；与官方里程相比市区线路偏差多在 5% 以内。已含佛山 2/3 号线与广佛线；APM 线为独立票制（2 元），不并入计价与统计。</span>
+    </div>
+  </aside>
+</div>
+
+<div class="modal" id="rulesModal">
+  <div class="mcard">
+    <h3>计价规则<button id="mClose" aria-label="关闭">×</button></h3>
+    <p><b>0–4km 2 元</b>；4–12km 每 4km 加 1 元；12–24km 每 6km 加 1 元；24km 以上每 8km 加 1 元，最高 20 元。</p>
+    <p><span class="k">里程算法</span>：在线网拓扑上跑最短路，站间取相邻两站的实际距离累加，因此保留了换乘绕行；与官方里程相比市区线路偏差多在 5% 以内。</p>
+    <p><span class="k">范围</span>：已含佛山 2/3 号线与广佛线；APM 线为独立票制（2 元），不并入计价与统计。</p>
+    <p><span class="k">操作</span>：双指缩放、拖动平移、点站点换起点；右侧列表点「票价档位」看每档能到哪些站。</p>
+  </div>
+</div>
+
+<script id="metroData" type="application/json">__DATA_JSON__</script>
+<script>
+(function(){
+'use strict';
+
+const DATA = JSON.parse(document.getElementById('metroData').textContent);
+const R_EARTH = 6371;
+const rad = d => d * Math.PI / 180;
+const byName = new Map(DATA.stations.map(s => [s.n, s]));
+
+const LINE_COLOR = {};
+DATA.lines.forEach(l => { if(!LINE_COLOR[l.n]) LINE_COLOR[l.n] = l.c; });
+
+function hav(a, b){
+  const dLat = rad(b.lat - a.lat), dLon = rad(b.lon - a.lon);
+  const h = Math.sin(dLat/2)**2 + Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLon/2)**2;
+  return 2 * R_EARTH * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+/* ---------- 线网拓扑 ---------- */
+const adj = new Map();
+for(const s of DATA.stations) adj.set(s.n, []);
+const addEdge = (L, n1, n2) => {
+  const a = byName.get(n1), b = byName.get(n2);
+  if(!a || !b) return;
+  const w = hav(a, b);
+  adj.get(n1).push([n2, w, L.n]);
+  adj.get(n2).push([n1, w, L.n]);
+};
+for(const L of DATA.lines){
+  for(let i = 0; i < L.s.length - 1; i++) addEdge(L, L.s[i], L.s[i+1]);
+  // 环线（11 号线）首尾补一条闭合边，否则大塘—龙潭要绕整圈
+  if(L.ring) addEdge(L, L.s[L.s.length - 1], L.s[0]);
+}
+
+// 最短路：轨道里程 + 经过站数 + 前驱（记住坐的是哪条线）
+function shortestPaths(src){
+  const dist = new Map(), hops = new Map(), prev = new Map(), done = new Set();
+  for(const k of adj.keys()){ dist.set(k, Infinity); hops.set(k, 9999); }
+  dist.set(src, 0); hops.set(src, 0);
+  const open = [src];
+  while(open.length){
+    let bi = 0, bd = Infinity;
+    for(let i = 0; i < open.length; i++){ const d = dist.get(open[i]); if(d < bd){ bd = d; bi = i; } }
+    const u = open[bi];
+    open.splice(bi, 1);
+    if(done.has(u)) continue;
+    done.add(u);
+    for(const [v, w, line] of adj.get(u)){
+      const nd = dist.get(u) + w;
+      if(nd < dist.get(v) - 1e-9){
+        dist.set(v, nd);
+        hops.set(v, hops.get(u) + 1);
+        prev.set(v, { from: u, line: line, w: w });
+        open.push(v);
+      }
+    }
+  }
+  return { dist, hops, prev };
+}
+
+// 回溯路径并合并同一线路的连续区段；同时返回完整站序（供地图高亮描线用）
+function buildRoute(target, src, prev){
+  const edges = [];
+  let cur = target, guard = 0;
+  while(cur !== src){
+    const p = prev.get(cur);
+    if(!p || guard++ > 400) return { segs: [], path: [] };
+    edges.push({ from: p.from, to: cur, line: p.line, w: p.w });
+    cur = p.from;
+  }
+  edges.reverse();
+  const path = [src, ...edges.map(e => e.to)];
+  const lines = edges.map(e => e.line);   // path[i] → path[i+1] 坐的是哪条线
+  const segs = [];
+  for(const e of edges){
+    const last = segs[segs.length - 1];
+    if(last && last.line === e.line){
+      last.to = e.to; last.stops++; last.km += e.w;
+    }else{
+      segs.push({ line: e.line, from: e.from, to: e.to, stops: 1, km: e.w });
+    }
+  }
+  return { segs, path, lines };
+}
+
+/* ---------- 票价 ---------- */
+function priceOf(km){
+  if(km <= 4) return 2;
+  if(km <= 8) return 3;
+  if(km <= 12) return 4;
+  if(km <= 18) return 5;
+  if(km <= 24) return 6;
+  return Math.min(20, 7 + Math.floor((km - 24 - 1e-9) / 8));
+}
+function tierRange(p){
+  if(p <= 2) return [0, 4];
+  if(p === 3) return [4, 8];
+  if(p === 4) return [8, 12];
+  if(p === 5) return [12, 18];
+  if(p === 6) return [18, 24];
+  return [24 + (p - 7) * 8, 24 + (p - 6) * 8];
+}
+const TIER_COLOR = {2:'#4ea8ff',3:'#22d3ee',4:'#4ade80',5:'#a3e635',6:'#fbbf24',
+  7:'#fb923c',8:'#f97316',9:'#ef4444',10:'#dc2626',11:'#b91c1c',12:'#991b1b',
+  13:'#a01a5c',14:'#7a1555',15:'#5c1149'};
+const colorOf = p => TIER_COLOR[p] || '#dc2626';
+
+/* ---------- 墨卡托 ---------- */
+const MX = 111319.49;
+const mercY = lat => 6378137 * Math.log(Math.tan(Math.PI/4 + rad(lat)/2));
+
+/* ---------- SVG 输出坐标 ---------- */
+// 内部一律用「米」算距离和等值场（量级 1200 万），但写进 SVG 前必须平移到原点再缩小 100 倍：
+// 部分手机内核在栅格化 polyline/path 时，坐标到了千万级会整条失效——圆点是图元还能画，
+// 线和圈就全不见了（表现为「只有点，没有线」）。桌面 Chrome 不受影响，所以极难发现。
+const WU = 100;                                   // 1 个 SVG 世界单位 = 100 m
+const WX0 = MX * 113.30;                          // 平移基准（广佛中部）
+const WY0 = mercY(23.10);
+const wx = v => (v - WX0) / WU;                   // 米 → SVG 世界单位
+const wy = v => (v - WY0) / WU;
+
+/* ---------- 缩放范围（px per meter） ---------- */
+const ZOOM_MIN = 0.0034, ZOOM_MAX = 0.35;   // 高档位的圈能到 140km 宽，缩放下限要够小
+
+/* ---------- 状态 ---------- */
+const state = {
+  origin: '体育西路',
+  tier: 4,
+  expanded: null,
+  scale: 0.0001,
+  pan: { x: 0, y: 0 },
+  view: { mx: 0, my: 0 },
+  tab: 'tier',
+  labelMode: 'xfer',   // xfer = 只标换乘站；auto = 原来自动策略
+  focusPath: null,     // 展开某站时高亮的完整站序（null = 不高亮）
+  focusLines: null,    // 与 focusPath 对应的线路名（长度 = 站数 - 1）
+  preFocus: null,      // 展开前的视野，收起时还原
+};
+let proj = new Map();
+let maxD = 1;
+let W = 0, H = 0;
+
+const svg = document.getElementById('map');
+const gWorld = document.getElementById('gWorld');
+const gLines = document.getElementById('gLines');
+const gStations = document.getElementById('gStations');
+const gLabels = document.getElementById('gLabels');
+const gPath = document.getElementById('gPath');
+const gOrigin = document.getElementById('gOrigin');
+const NS = 'http://www.w3.org/2000/svg';
+
+/* ---------- 建 DOM ---------- */
+// 线宽一律用「屏幕像素 ÷ 缩放比」写进 user unit。
+// 不用 vector-effect:non-scaling-stroke：部分国产内核（X5 系）不支持，
+// 线宽会被再乘一次缩放比（3.2 → 0.04px），整张图就只剩点没有线。
+const lineEls = DATA.lines.map(l => {
+  const mk = (color, w) => {
+    const el = document.createElementNS(NS, 'polyline');
+    el.setAttribute('fill', 'none');
+    el.setAttribute('stroke', color);
+    el.setAttribute('stroke-linecap', 'round');
+    el.setAttribute('stroke-linejoin', 'round');
+    gLines.appendChild(el);
+    return el;
+  };
+  const base = mk('#ffffff');
+  const el = mk(l.c);
+  const pts = l.s.map(n => {
+    const st = byName.get(n);
+    return st ? wx(MX * st.lon).toFixed(2) + ',' + wy(mercY(st.lat)).toFixed(2) : null;
+  }).filter(Boolean);
+  if(l.ring && pts.length) pts.push(pts[0]);
+  const path = pts.join(' ');
+  base.setAttribute('points', path);
+  el.setAttribute('points', path);
+  return { el, base };
+});
+
+const stationEls = DATA.stations.map((s, i) => {
+  const c = document.createElementNS(NS, 'circle');
+  c.setAttribute('data-i', i);
+  c.setAttribute('cx', wx(MX * s.lon).toFixed(2));
+  c.setAttribute('cy', wy(mercY(s.lat)).toFixed(2));
+  c.setAttribute('fill', '#0a0e13');
+  c.setAttribute('stroke', '#7d8ea3');
+  c.setAttribute('stroke-width', '1.4');
+  gStations.appendChild(c);
+  const t = document.createElementNS(NS, 'text');
+  t.setAttribute('font-size', '10.5');
+  t.setAttribute('fill', '#c3d2e2');
+  t.setAttribute('text-anchor', 'start');
+  t.setAttribute('pointer-events', 'none');
+  t.setAttribute('style', 'paint-order:stroke;stroke:#080c11;stroke-width:3px;stroke-linejoin:round');
+  gLabels.appendChild(t);
+  return { el: c, txt: t, s, mx: MX * s.lon, my: mercY(s.lat), d: 0, price: 2, hops: 0, idx: i };
+});
+
+/* ---------- 计算 ---------- */
+function computeOrigin(name){
+  const o = byName.get(name);
+  if(!o) return false;
+  state.origin = name;
+  const { dist, hops, prev } = shortestPaths(name);
+  maxD = 1;
+  const m = new Map();
+  for(const p of stationEls){
+    const d = dist.get(p.s.n);
+    p.unreach = (d === undefined || d === Infinity);
+    p.d = p.unreach ? 0 : d;
+    p.hops = hops.get(p.s.n) || 0;
+    p.price = priceOf(p.d);
+    if(p.s.n === name){ p.route = []; p.path = [name]; p.pathLines = []; }
+    else { const r = buildRoute(p.s.n, name, prev); p.route = r.segs; p.path = r.path; p.pathLines = r.lines; }
+    if(p.d > maxD) maxD = p.d;
+    m.set(p.s.n, p);
+  }
+  proj = m;
+  // 边界站：至少有一个相邻站落在别的票价档（= 该档这一层的最外围）
+  for(const p of stationEls){
+    const nbs = adj.get(p.s.n) || [];
+    p.edge = p.s.n !== name && nbs.some(([nb]) => {
+      const q = proj.get(nb);
+      return q && q.price !== p.price;
+    });
+  }
+  const far = new Map();
+  for(const p of stationEls){
+    const cur = far.get(p.price);
+    if(!cur || p.d > cur.d) far.set(p.price, p);
+  }
+  state.boundary = new Set([...far.values()].map(p => p.s.n));
+  // 起点统计：到其余各站票价之和 / 站数
+  let sumP = 0, cntP = 0, maxP = 0;
+  for(const p of stationEls){
+    if(p.s.n === name) continue;
+    sumP += p.price; cntP++;
+    if(p.price > maxP) maxP = p.price;
+  }
+  state.originStat = { avg: cntP ? sumP / cntP : 0, cnt: cntP, maxKm: maxD, maxPrice: maxP };
+  fieldVer++;
+  ringCache.clear();    // 最短路重算过，旧圈全部作废
+  return true;
+}
+
+/* ---------- 全部起点的平均票价排行 ---------- */
+let rankRows = null;      // 按均价升序
+let rankOf = null;        // 站名 → 行
+let rankState = 'idle';   // idle | running | done
+let rankDesc = false;
+let rankCbs = [];
+
+function ensureRank(cb){
+  if(rankRows){ if(cb) cb(); return; }
+  if(cb) rankCbs.push(cb);
+  if(rankState === 'running') return;
+  rankState = 'running';
+  setTimeout(computeRank, 16);   // 先让首屏画出来，再算
+}
+
+function computeRank(){
+  const names = DATA.stations.map(s => s.n);
+  const rows = [];
+  let i = 0;
+
+  function finish(){
+    rows.sort((a, b) => a.avg - b.avg || a.maxKm - b.maxKm || (a.n < b.n ? -1 : 1));
+    rows.forEach((r, k) => { r.rank = k + 1; });
+    rankRows = rows;
+    rankOf = new Map(rows.map(r => [r.n, r]));
+    rankState = 'done';
+    renderOriginStats();
+    if(state.tab === 'rank') renderRank(true);
+    const cbs = rankCbs; rankCbs = [];
+    cbs.forEach(f => f());
+  }
+
+  // 分批跑，每批最多占 12ms，避免在低端手机上卡住主线程
+  function step(){
+    const until = performance.now() + 12;
+    while(i < names.length && performance.now() < until){
+      const nm = names[i++];
+      const { dist } = shortestPaths(nm);
+      let sum = 0, n = 0, mx = 0;
+      for(const [k, d] of dist){
+        if(k === nm || !isFinite(d)) continue;
+        sum += priceOf(d); n++;
+        if(d > mx) mx = d;
+      }
+      rows.push({ n: nm, avg: n ? sum / n : 0, cnt: n, maxKm: mx, maxP: priceOf(mx) });
+    }
+    if(i < names.length) setTimeout(step, 0);
+    else finish();
+  }
+  step();
+}
+
+function renderOriginStats(){
+  const st = state.originStat;
+  if(!st) return;
+  const r = rankOf && rankOf.get(state.origin);
+  document.getElementById('stAvg').innerHTML =
+    '<span class="k">平均票价</span><span class="v">' + st.avg.toFixed(2) +
+    '<i>元</i><em>' + st.cnt + ' 站</em></span>';
+  document.getElementById('stRank').innerHTML =
+    '<span class="k">均价排名</span>' + (r
+      ? '<span class="v">#' + r.rank + '<em>/ ' + rankRows.length + '</em></span>'
+      : '<span class="v wait">计算中</span>');
+}
+
+function renderRank(center){
+  const box = document.getElementById('rkList');
+  document.getElementById('rkCnt').textContent = DATA.stations.length - 1;
+  document.getElementById('rankCount').textContent = DATA.stations.length;
+  if(!rankRows){
+    box.innerHTML = '<div class="rkempty">正在计算全部起点的平均票价…<br>' + DATA.stations.length + ' 次最短路，约 0.2 秒</div>';
+    return;
+  }
+  const rows = rankDesc ? rankRows.slice().reverse() : rankRows;
+  box.innerHTML = rows.map(r =>
+    '<div class="rkrow' + (r.n === state.origin ? ' cur' : '') + '" data-n="' + r.n + '">' +
+      '<span class="rkno">' + r.rank + '</span>' +
+      '<span class="rkmain">' +
+        '<span class="rkname">' + r.n + '</span>' +
+        '<span class="rksub">最远 ' + r.maxKm.toFixed(1) + ' km · 最高 ' + r.maxP + ' 元</span>' +
+      '</span>' +
+      '<span class="rkavg"><b>' + r.avg.toFixed(2) + '</b><i>元</i></span>' +
+    '</div>'
+  ).join('');
+  if(center){
+    const cur = box.querySelector('.rkrow.cur');
+    if(cur) cur.scrollIntoView({ block: 'center' });
+    else box.scrollTop = 0;
+  }
+}
+
+/* ---------- 视野 ---------- */
+function visibleSet(){
+  if(!state.tier) return stationEls;
+  const hi = tierRange(state.tier)[1];
+  return stationEls.filter(p => p.d <= hi);
+}
+function fitView(animate){
+  const list = visibleSet();
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for(const p of list){
+    if(p.mx < x0) x0 = p.mx;
+    if(p.mx > x1) x1 = p.mx;
+    if(p.my < y0) y0 = p.my;
+    if(p.my > y1) y1 = p.my;
+  }
+  // 选中档位时把这一档的闭合圈也框进来，否则圈会被裁在视野外
+  if(state.tier){
+    const r = getIsoRing(state.tier);
+    if(r && r.bb){
+      x0 = Math.min(x0, r.bb[0]); y0 = Math.min(y0, r.bb[1]);
+      x1 = Math.max(x1, r.bb[2]); y1 = Math.max(y1, r.bb[3]);
+    }
+  }
+  if(!isFinite(x0)) return;
+  const wm = Math.max(2000, (x1 - x0)), hm = Math.max(2000, (y1 - y0));
+  // 手机上地图矮，留白按比例收窄，让线网尽量铺满
+  const pad = W < 560 ? 0.93 : 0.84;
+  const s = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, Math.min((W * pad) / wm, (H * pad) / hm)));
+  const target = { mx: (x0 + x1) / 2, my: (y0 + y1) / 2, scale: s };
+  state.fitScale = s;
+  if(animate) animateView(target);
+  else { state.view = target; state.scale = s; render(); }
+}
+
+// 路径包围盒 + 合适的取景比例（留出标签空间，比 fitView 的 0.88 保守）
+function pathBounds(path){
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity, n = 0;
+  for(const name of path){
+    const p = proj.get(name);
+    if(!p) continue;
+    n++;
+    if(p.mx < x0) x0 = p.mx; if(p.mx > x1) x1 = p.mx;
+    if(p.my < y0) y0 = p.my; if(p.my > y1) y1 = p.my;
+  }
+  if(!n) return null;
+  const wm = Math.max(1500, x1 - x0), hm = Math.max(1500, y1 - y0);
+  // 手机上地图矮，留宽一点的边距，不然首末站会贴到图例/边缘上
+  const pad = W < 560 ? 0.54 : 0.66;
+  const sc = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, Math.min((W * pad) / wm, (H * pad) / hm)));
+  return { x0, x1, y0, y1, wm, hm, sc };
+}
+
+// 需要重新取景的两种情况：有站点出界，或当前视野比合适视野宽一倍以上（全览下展开会缩成一小团）
+function needFit(path){
+  const b = pathBounds(path);
+  if(!b) return false;
+  for(const name of path){
+    const p = proj.get(name);
+    if(!p) continue;
+    const sx = (p.mx - state.view.mx) * state.scale + W / 2 + state.pan.x;
+    const sy = (state.view.my - p.my) * state.scale + H / 2 + state.pan.y;
+    if(sx < 34 || sx > W - 34 || sy < 34 || sy > H - 34) return true;
+  }
+  return state.scale < b.sc * 0.55;
+}
+
+function fitToPath(path, animate){
+  const b = pathBounds(path);
+  if(!b) return;
+  const target = { mx: (b.x0 + b.x1) / 2, my: (b.y0 + b.y1) / 2, scale: b.sc };
+  state.fitScale = b.sc;
+  if(animate) animateView(target);
+  else { state.view = target; state.scale = b.sc; render(); }
+}
+
+let anim = null;
+function animateView(t){
+  if(anim) cancelAnimationFrame(anim);
+  const v0 = { mx: state.view.mx, my: state.view.my, scale: state.scale };
+  const t0 = performance.now(), dur = 460;
+  function step(now){
+    const e = Math.min(1, (now - t0) / dur);
+    const k = 1 - Math.pow(1 - e, 3);
+    state.view = { mx: v0.mx + (t.mx - v0.mx) * k, my: v0.my + (t.my - v0.my) * k };
+    state.scale = v0.scale + (t.scale - v0.scale) * k;
+    render();
+    if(e < 1) anim = requestAnimationFrame(step);
+    else { anim = null; state.view = { mx: t.mx, my: t.my }; state.scale = t.scale; render(); }
+  }
+  anim = requestAnimationFrame(step);
+}
+
+/* ---------- 凸包 ---------- */
+function convexHull(pts){
+  if(pts.length < 3) return pts;
+  const p = pts.slice().sort((a, b) => a.mx - b.mx || a.my - b.my);
+  const cross = (o, a, b) => (a.mx - o.mx) * (b.my - o.my) - (a.my - o.my) * (b.mx - o.mx);
+  const lower = [];
+  for(const pt of p){
+    while(lower.length >= 2 && cross(lower[lower.length-2], lower[lower.length-1], pt) <= 0) lower.pop();
+    lower.push(pt);
+  }
+  const upper = [];
+  for(let i = p.length - 1; i >= 0; i--){
+    const pt = p[i];
+    while(upper.length >= 2 && cross(upper[upper.length-2], upper[upper.length-1], pt) <= 0) upper.pop();
+    upper.push(pt);
+  }
+  lower.pop(); upper.pop();
+  return lower.concat(upper);
+}
+
+/* ---------- 等费闭合圈：距离场网格 + Marching Squares ---------- */
+let field = null;                 // 按起点缓存的轨道里程场（米 / km）
+let fieldVer = 0;                 // 每次重算最短路就 +1，用来让旧的场缓存失效
+const ringCache = new Map();      // origin|档位 → 闭合环路径
+
+// 把离散的「站点轨道里程」插值到整张网格上。
+// 站点只沿线路分布，用 IDW（反距离加权）能把走廊之间的空白补齐成连续场，
+// 这样等值线才能闭合成圈，而不是沿线断成一段一段。
+function buildField(){
+  if(field && field.origin === state.origin && field.ver === fieldVer) return field;
+  const pts = stationEls.map(p => [p.mx, p.my, p.unreach ? 140 : p.d]);
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for(const p of pts){
+    if(p[0] < x0) x0 = p[0]; if(p[0] > x1) x1 = p[0];
+    if(p[1] < y0) y0 = p[1]; if(p[1] > y1) y1 = p[1];
+  }
+  const pad = 32000;                          // 留白：最高需要画的等值线到 56km，太小会把圈切在网格外
+  x0 -= pad; x1 += pad; y0 -= pad; y1 += pad;
+  const nx = 300, ny = Math.max(90, Math.round(nx * (y1 - y0) / (x1 - x0)));
+  const dx = (x1 - x0) / (nx - 1), dy = (y1 - y0) / (ny - 1);
+  const F = new Float32Array(nx * ny);
+  const R2 = 30 * 30 * 1e6;                   // 30km 之外的站对场几乎没有贡献，截断提速
+  // 站点按 10km 网格分桶：每个格点只看周围 7×7 桶，避免 7 万个格点 × 359 站的全遍历。
+  // 桶用一维数组 + 整数下标（字符串 key 的 Map 在 350 万次查询下会明显拖慢）。
+  const CELL = 10000;
+  const bc = Math.ceil((x1 - x0) / CELL) + 1, br = Math.ceil((y1 - y0) / CELL) + 1;
+  const buckets = new Array(bc * br);
+  for(const q of pts){
+    const k = Math.floor((q[1] - y0) / CELL) * bc + Math.floor((q[0] - x0) / CELL);
+    (buckets[k] || (buckets[k] = [])).push(q);
+  }
+  for(let j = 0; j < ny; j++){
+    const y = y0 + j * dy;
+    const cj = Math.floor(j * dy / CELL);
+    for(let i = 0; i < nx; i++){
+      const x = x0 + i * dx;
+      const ci = Math.floor(i * dx / CELL);
+      let num = 0, den = 0, m2 = Infinity, md = 200;
+      for(let b = -3; b <= 3; b++){          // ±3 桶 = 30km，与下面的 R2 截断对齐
+        const jj = cj + b;
+        if(jj < 0 || jj >= br) continue;
+        const row = jj * bc;
+        for(let a = -3; a <= 3; a++){
+          const ii = ci + a;
+          if(ii < 0 || ii >= bc) continue;
+          const arr = buckets[row + ii];
+          if(!arr) continue;
+          for(const q of arr){
+            const ax = q[0] - x, ay = q[1] - y;
+            const d2 = ax * ax + ay * ay;
+            if(d2 < m2){ m2 = d2; md = q[2]; }
+            if(d2 > R2) continue;
+            // 用 1/d⁴（而不是标准 IDW 的 1/d²）：站点只沿线路分布，权重太「平」时
+            // 两侧空地的插值会被拉低/抬高，等值线就会拱出离站点很远的假边界。
+            // 锐化后场贴着最近站点走，圈才是真正的「包住这一档车站」的边界。
+            const w = 1 / (d2 * d2 + 1e14);
+            num += w * q[2]; den += w;
+          }
+        }
+      }
+      // 没有任何站可插值的地方，按「最近站的里程 + 到它的距离」外推，
+      // 场才会单调向外增大（直接用常数会让最外圈冒出一条假边界）
+      F[j * nx + i] = den > 0 ? num / den : (m2 < Infinity ? md + Math.sqrt(m2) / 1000 : 200);
+    }
+  }
+  // 轻度高斯平滑：抹掉站点稀疏区的台阶和线路端点处的尖刺（等值线才不会长毛）
+  smoothField(F, nx, ny, 2);
+  field = { origin: state.origin, ver: fieldVer, nx, ny, x0, y0, dx, dy, F };
+  return field;
+}
+
+// 3×3 加权平滑，原地多遍
+function smoothField(F, nx, ny, passes){
+  const tmp = new Float32Array(nx * ny);
+  let src = F, dst = tmp;
+  for(let pass = 0; pass < passes; pass++){
+    for(let j = 0; j < ny; j++){
+      for(let i = 0; i < nx; i++){
+        let sum = 0, wsum = 0;
+        for(let b = -1; b <= 1; b++){
+          const jj = j + b;
+          if(jj < 0 || jj >= ny) continue;
+          for(let a = -1; a <= 1; a++){
+            const ii = i + a;
+            if(ii < 0 || ii >= nx) continue;
+            const w = (a === 0 && b === 0) ? 4 : (a === 0 || b === 0) ? 2 : 1;
+            sum += src[jj * nx + ii] * w; wsum += w;
+          }
+        }
+        dst[j * nx + i] = sum / wsum;
+      }
+    }
+    const t = src; src = dst; dst = t;
+  }
+  if(src !== F) F.set(src);
+}
+
+// 把所有等值线段的首尾接成一条条闭合环
+function linkRings(segs){
+  const key = p => Math.round(p[0] * 4) + '|' + Math.round(p[1] * 4);   // 0.25m 量化，容浮点误差
+  const map = new Map();
+  segs.forEach((sg, i) => {
+    for(let e = 0; e < 2; e++){
+      const k = key(sg[e]);
+      let a = map.get(k);
+      if(!a){ a = []; map.set(k, a); }
+      a.push([i, e]);
+    }
+  });
+  const used = new Uint8Array(segs.length);
+  const out = [];
+  for(let i = 0; i < segs.length; i++){
+    if(used[i]) continue;
+    used[i] = 1;
+    const chain = [segs[i][0], segs[i][1]];
+    let grow = true;
+    while(grow){
+      grow = false;
+      for(const [si, e] of (map.get(key(chain[chain.length - 1])) || [])){
+        if(used[si]) continue;
+        used[si] = 1; chain.push(segs[si][1 - e]); grow = true; break;
+      }
+      if(grow) continue;
+      for(const [si, e] of (map.get(key(chain[0])) || [])){
+        if(used[si]) continue;
+        used[si] = 1; chain.unshift(segs[si][1 - e]); grow = true; break;
+      }
+    }
+    if(chain.length > 10) out.push(chain);
+  }
+  return out;
+}
+
+function pointInRing(pt, ring){
+  let inside = false;
+  for(let i = 0, j = ring.length - 1; i < ring.length; j = i++){
+    const xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+    if(((yi > pt[1]) !== (yj > pt[1])) && (pt[0] < (xj - xi) * (pt[1] - yi) / (yj - yi) + xi)) inside = !inside;
+  }
+  return inside;
+}
+
+function ringLen(r){
+  let s = 0;
+  for(let i = 1; i < r.length; i++) s += Math.hypot(r[i][0] - r[i-1][0], r[i][1] - r[i-1][1]);
+  return s;
+}
+
+// 取 level 对应的闭合圈：优先选把起点圈在里面的那一个
+function getIsoRing(sel){
+  const ck = state.origin + '|' + sel;
+  if(ringCache.has(ck)) return ringCache.get(ck);
+  const level = tierRange(sel)[1];
+  // 最高档已经覆盖全网（所有站的里程都在这档之内），再画圈只会画到站点之外，没意义
+  if(level >= maxD){
+    const none = { d: null, level, rings: 0, bb: null };
+    ringCache.set(ck, none);
+    return none;
+  }
+  const f = buildField();
+  const { nx, ny, dx, dy, x0, y0 } = f;
+  // 用副本做「本档站点强制入圈」的整理：平滑会把边界推开几百米，
+  // 个别最外层站会被挤出圈外，看起来就是「亮着的站在圈外面」。
+  const F = new Float32Array(f.F);
+  for(const p of stationEls){
+    if(p.price > sel) continue;
+    const ci = Math.round((p.mx - x0) / dx), cj = Math.round((p.my - y0) / dy);
+    for(let b = -2; b <= 2; b++){
+      for(let a = -2; a <= 2; a++){
+        if(a * a + b * b > 5) continue;
+        const i = ci + a, j = cj + b;
+        if(i < 0 || j < 0 || i >= nx || j >= ny) continue;
+        const k = j * nx + i;
+        if(F[k] > level - 0.6) F[k] = level - 0.6;
+      }
+    }
+  }
+  smoothField(F, nx, ny, 1);   // 把补出来的小坑抹平，别在边界上留小尖刺
+  const segs = [];
+  const at = (i, j) => F[j * nx + i];
+  for(let j = 0; j < ny - 1; j++){
+    for(let i = 0; i < nx - 1; i++){
+      const a = at(i, j), b = at(i + 1, j), c = at(i + 1, j + 1), d = at(i, j + 1);
+      const s0 = a > level, s1 = b > level, s2 = c > level, s3 = d > level;
+      if(s0 === s1 && s1 === s2 && s2 === s3) continue;
+      const X0 = x0 + i * dx, X1 = X0 + dx, Y0 = y0 + j * dy, Y1 = Y0 + dy;
+      const ps = [];
+      const cut = (v1, v2, ax, ay, bx, by) => {
+        const t = (level - v1) / (v2 - v1);
+        ps.push([ax + (bx - ax) * t, ay + (by - ay) * t]);
+      };
+      if(s0 !== s1) cut(a, b, X0, Y0, X1, Y0);
+      if(s1 !== s2) cut(b, c, X1, Y0, X1, Y1);
+      if(s3 !== s2) cut(d, c, X0, Y1, X1, Y1);
+      if(s0 !== s3) cut(a, d, X0, Y0, X0, Y1);
+      if(ps.length === 2) segs.push([ps[0], ps[1]]);
+      else if(ps.length === 4){
+        // 鞍点：看格子中心的插值大小决定怎么连
+        if((a + b + c + d) / 4 > level){ segs.push([ps[0], ps[3]], [ps[1], ps[2]]); }
+        else { segs.push([ps[0], ps[1]], [ps[2], ps[3]]); }
+      }
+    }
+  }
+  const rings = linkRings(segs);
+  const o = proj.get(state.origin);
+  let best = null, bestLen = -1;
+  if(o){
+    for(const r of rings){
+      if(pointInRing([o.mx, o.my], r)){ const L = ringLen(r); if(L > bestLen){ best = r; bestLen = L; } }
+    }
+  }
+  if(!best){
+    for(const r of rings){ const L = ringLen(r); if(L > bestLen){ best = r; bestLen = L; } }
+  }
+  let path = null;
+  let bb = null;
+  if(best){
+    let bx0 = Infinity, bx1 = -Infinity, by0 = Infinity, by1 = -Infinity;
+    for(const p of best){
+      if(p[0] < bx0) bx0 = p[0]; if(p[0] > bx1) bx1 = p[0];
+      if(p[1] < by0) by0 = p[1]; if(p[1] > by1) by1 = p[1];
+    }
+    bb = [bx0, by0, bx1, by1];
+    path = catmullPath(thinRing(best, Math.max(150, Math.min(620, ringLen(best) / 130))));
+  }
+  const res = { d: path, level, rings: rings.length, bb };
+  ringCache.set(ck, res);
+  if(ringCache.size > 60) ringCache.delete(ringCache.keys().next().value);
+  return res;
+}
+
+// 等值线是沿网格边走的折线，先按间距抽稀，再用 Catmull-Rom 拟合，边界才圆润不带锯齿
+function thinRing(ring, gap){
+  const out = [ring[0]];
+  for(let i = 1; i < ring.length; i++){
+    const a = out[out.length - 1], b = ring[i];
+    if(Math.hypot(b[0] - a[0], b[1] - a[1]) >= gap) out.push(b);
+  }
+  if(out.length > 3 && Math.hypot(out[0][0] - out[out.length-1][0], out[0][1] - out[out.length-1][1]) < gap) out.pop();
+  return out;
+}
+
+function catmullPath(ring){
+  const n = ring.length;
+  if(n < 3) return null;
+  const P = i => ring[((i % n) + n) % n];
+  const f = v => wx(v).toFixed(2);
+  const g = v => wy(v).toFixed(2);
+  let d = 'M' + f(ring[0][0]) + ',' + g(ring[0][1]);
+  for(let i = 0; i < n; i++){
+    const p0 = P(i - 1), p1 = P(i), p2 = P(i + 1), p3 = P(i + 2);
+    // 张力取 1/9（比标准 1/6 更贴折线）：花瓣状的边界尖端不会被曲线切掉
+    const c1x = p1[0] + (p2[0] - p0[0]) / 9, c1y = p1[1] + (p2[1] - p0[1]) / 9;
+    const c2x = p2[0] - (p3[0] - p1[0]) / 9, c2y = p2[1] - (p3[1] - p1[1]) / 9;
+    d += 'C' + f(c1x) + ',' + g(c1y) + ' ' + f(c2x) + ',' + g(c2y) + ' ' + f(p2[0]) + ',' + g(p2[1]);
+  }
+  return d + 'Z';
+}
+
+// 圈的 DOM 只在「起点 + 档位」变化时重建；平移缩放时直接复用，
+// 否则每帧都要解析几十 KB 的路径数据。
+let gPathMode = '';
+// 圈 / 高亮线的线宽要按当前缩放换算成 user unit，登记下来每次 render 重设
+let gStrokes = [];
+function regStroke(el, px){
+  el.__px = px;
+  gStrokes.push(el);
+  el.setAttribute('stroke-width', (px / (state.scale * WU)).toFixed(4));
+}
+function drawIso(sel){
+  const info = getIsoRing(sel);
+  if(!info || !info.d) return;
+  const col = colorOf(sel);
+  const mkPath = (fill, fo, w, op, dash) => {
+    const el = document.createElementNS(NS, 'path');
+    el.setAttribute('d', info.d);
+    el.setAttribute('fill', fill);
+    el.setAttribute('fill-opacity', fo);
+    el.setAttribute('stroke', fill === 'none' ? col : 'none');
+    el.setAttribute('stroke-opacity', op);
+    el.setAttribute('stroke-linejoin', 'round');
+    if(dash) el.setAttribute('stroke-dasharray', dash);
+    if(w) regStroke(el, w); else el.setAttribute('stroke-width', 0);
+    gPath.appendChild(el);
+  };
+  mkPath(col, .05, 0, 0, null);             // 可达区域淡填充
+  mkPath('none', 0, 11, .12, null);         // 外发光
+  mkPath('none', 0, 2.6, .95, null);        // 边界主线
+  mkPath('none', 0, 1.0, .5, '5 5');        // 内层虚线，强化「一圈」的读感
+}
+
+// 高亮路径：按每一段的线路本色描线（光晕 + 主线 + 细白芯提亮）
+function drawHlPath(){
+  const P = state.focusPath, LS = state.focusLines || [];
+  const xy = P.map(n => { const q = proj.get(n); return q ? [q.mx, q.my] : null; });
+  const mkLine = (d, color, w, op) => {
+    const el = document.createElementNS(NS, 'polyline');
+    el.setAttribute('points', d);
+    el.setAttribute('fill', 'none');
+    el.setAttribute('stroke', color);
+    el.setAttribute('stroke-opacity', op);
+    el.setAttribute('stroke-linecap', 'round');
+    el.setAttribute('stroke-linejoin', 'round');
+    regStroke(el, w);
+    gPath.appendChild(el);
+  };
+  let i = 0;
+  while(i < P.length - 1){
+    const ln = LS[i] || '';
+    let j = i;
+    while(j < P.length - 1 && (LS[j] || '') === ln) j++;
+    let d = '';
+    for(let k = i; k <= j; k++){
+      const q = xy[k];
+      if(q) d += (d ? ' ' : '') + wx(q[0]).toFixed(2) + ',' + wy(q[1]).toFixed(2);
+    }
+    if(d){
+      const base = LINE_COLOR[ln] || '#8be9fd';
+      mkLine(d, base, 15, .2);              // 光晕（本色）
+      mkLine(d, lighten(base, .3), 6.4, 1); // 提亮 30% 的主线
+      mkLine(d, '#ffffff', 1.3, .3);        // 细白芯
+    }
+    i = j;
+  }
+}
+
+/* ---------- 渲染 ---------- */
+function render(){
+  if(!W || !H) return;
+  const s = state.scale;
+  const vs = s * WU;                   // SVG 世界单位 → 屏幕像素
+  const cx = W / 2 + state.pan.x, cy = H / 2 + state.pan.y;
+  gWorld.setAttribute('transform',
+    'translate(' + cx.toFixed(2) + ',' + cy.toFixed(2) + ') scale(' + vs.toFixed(6) + ',' + (-vs).toFixed(6) +
+    ') translate(' + (-wx(state.view.mx)).toFixed(2) + ',' + (-wy(state.view.my)).toFixed(2) + ')');
+
+  const sel = state.tier;
+  const rSel = sel ? tierRange(sel) : null;
+  // 站点尺寸随缩放增长（开方压缩，避免全览时糊成一团）
+  const sz = Math.min(1.75, Math.max(1.0, Math.pow(s / 0.03, 0.42)));
+  // 手机屏幕小，点必须比桌面细一档，否则市中心 358 个点会糊成一个色块
+  const dk = W < 560 ? 0.74 : 1;
+  // 展开某站时的路径高亮
+  const hl = (state.focusPath && state.focusPath.length > 1) ? new Set(state.focusPath) : null;
+
+  for(const p of stationEls){
+    const inTier = sel ? (p.d <= rSel[1] && p.d > rSel[0]) : false;
+    const inside = sel ? p.d <= rSel[1] : true;
+    const isOrigin = p.s.n === state.origin;
+    const col = colorOf(p.price);
+    let r, fill, stroke, so, op;
+    if(isOrigin){ r = 7.0 * sz; fill = '#fff'; stroke = '#4a9eff'; so = 2.3 * sz; op = 1; }
+    else if(!sel){
+      // 手机上点更小；换乘站略大、普通站更细，全览时才分得出骨架和毛细血管
+      r = (W < 560 ? (p.s.ln.length > 1 ? 4.0 : 2.4) : 3.4) * sz;
+      fill = col; stroke = '#080c11'; so = 1.2 * sz; op = 1;
+    }
+    else if(inTier){
+      r = 5.2 * sz; fill = col; stroke = '#ffffff'; so = 1.5 * sz; op = 1;
+      if(p.edge){ r *= 1.2; so = 2.4 * sz; }   // 该档最外层
+    }
+    else if(inside){ r = 3.6 * sz; fill = col; stroke = 'none'; so = 0; op = .85; }
+    else { r = 2.1 * sz; fill = '#3b4a59'; stroke = 'none'; so = 0; op = .16; }
+    r *= dk; so *= Math.min(1, dk + 0.15);
+    if(hl){
+      if(hl.has(p.s.n)){
+        if(p.s.n !== state.origin){
+          r *= 1.15;
+          if(stroke === 'none'){ stroke = '#0a1017'; so = 1.1 * sz; }
+          op = 1;
+        }
+      }else{
+        // 手机屏幕窄，压到 .13 会让整张图只剩一条高亮线，留一点底图
+        r *= 0.9; op = Math.min(op, W < 560 ? .3 : .13);
+      }
+    }
+    const el = p.el;
+    el.setAttribute('r', (r / vs).toFixed(6));
+    el.setAttribute('fill', fill);
+    el.setAttribute('stroke', stroke);
+    el.setAttribute('stroke-width', (so / vs).toFixed(6));
+    el.setAttribute('opacity', op);
+  }
+
+  const dimmed = hl || sel;   // 有聚焦（路径或档位）时，底图整体压暗
+  const narrow = W < 560;     // 手机：别把底图压死，否则整张图就剩一条线
+  const lw = narrow ? 3.6 : 3.2;   // 屏幕像素，写进 SVG 时要除以 s
+  for(const { el, base } of lineEls){
+    el.setAttribute('stroke-width', (lw / vs).toFixed(4));
+    // 小屏上点是主角，但线才是骨架；全览时线要更亮一点才看得出走向
+    el.setAttribute('opacity', dimmed ? (hl ? (narrow ? 0.34 : 0.12) : 0.3) : (narrow ? 0.88 : 0.72));
+    base.setAttribute('stroke-width', (8.0 / vs).toFixed(4));
+    base.setAttribute('opacity', dimmed ? (hl ? (narrow ? 0.03 : 0.012) : 0.02) : 0.07);
+  }
+
+  // 圈 / 路径高亮的 DOM 只在「起点 + 档位 + 路径」变化时重建，
+  // 平移缩放直接复用（不用每帧解析几十 KB 的路径）。
+  const wantMode = hl ? ('hl:' + state.focusPath.join('>'))
+                      : (sel ? ('iso:' + state.origin + '|' + sel) : '');
+  if(wantMode !== gPathMode){
+    gPathMode = wantMode;
+    gPath.innerHTML = '';
+    gStrokes = [];
+    if(hl) drawHlPath();
+    else if(sel) drawIso(sel);
+  }
+  // 缩放变了要重算这些 path/polyline 的线宽（不再靠 non-scaling-stroke）
+  for(const e of gStrokes) e.setAttribute('stroke-width', (e.__px / vs).toFixed(4));
+
+  // 起点
+  gOrigin.innerHTML = '';
+  const op0 = proj.get(state.origin);
+  if(op0){
+    const mk = (r, fill, stroke, so, opacity) => {
+      const c = document.createElementNS(NS, 'circle');
+      c.setAttribute('cx', wx(op0.mx).toFixed(2));
+      c.setAttribute('cy', wy(op0.my).toFixed(2));
+      c.setAttribute('r', (r / vs).toFixed(6));
+      c.setAttribute('fill', fill);
+      c.setAttribute('stroke', stroke);
+      c.setAttribute('stroke-width', (so / vs).toFixed(6));
+      c.setAttribute('opacity', opacity);
+      gOrigin.appendChild(c);
+    };
+    mk(21 * sz, '#4a9eff', 'none', 0, .10);
+    mk(12.5 * sz, 'none', '#4a9eff', 1.3 * sz, .72);
+  }
+
+  renderLabels(cx, cy, s, sel, rSel);
+
+  const nice = niceNum(110 / s / 1000);
+  document.getElementById('sbar').style.width = (nice * 1000 * s).toFixed(0) + 'px';
+  document.getElementById('stxt').textContent = nice + ' km';
+}
+
+// 把颜色朝白色提亮 k（0~1），保留线路色相又能从深底里跳出来
+function lighten(hex, k){
+  if(!hex || hex[0] !== '#' || hex.length < 7) return hex;
+  const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+  const f = v => Math.round(v + (255 - v) * k);
+  return 'rgb(' + f(r) + ',' + f(g) + ',' + f(b) + ')';
+}
+
+function niceNum(x){
+  const p = Math.pow(10, Math.floor(Math.log10(x)));
+  const n = x / p;
+  let v;
+  if(n < 1.5) v = 1; else if(n < 3.5) v = 2; else if(n < 7.5) v = 5; else v = 10;
+  return v * p;
+}
+
+function renderLabels(cx, cy, s, sel, rSel){
+  const limitKm = sel ? rSel[1] : maxD * 1.1;
+  const fp = (state.focusPath && state.focusPath.length > 1) ? state.focusPath : null;
+  let cands, limit;
+  if(fp){
+    // 高亮路径时，标签收敛到这条线上，其余全部隐藏
+    const arr = fp.map(n => proj.get(n)).filter(Boolean);
+    // 终点提到第二位优先占位，否则长路径下容易被中间站挤出
+    cands = arr.length > 2 ? [arr[0], arr[arr.length - 1], ...arr.slice(1, arr.length - 1)] : arr;
+    limit = cands.length;
+  }else if(state.labelMode === 'xfer'){
+    // 固定只标换乘站（外加起点），位置与档位无关，换起点也不跳
+    cands = stationEls.filter(p => p.s.n === state.origin || p.s.ln.length > 1)
+      .sort((a, b) => a.d - b.d);
+    limit = W < 520 ? 52 : 90;
+  }else if(sel){
+    cands = stationEls.filter(p => p.d <= limitKm).sort((a, b) => a.d - b.d);
+    limit = W < 520 ? 56 : 80;
+  }else{
+    // 全览只标边界站与换乘站，避免市中心糊成一片
+    cands = stationEls.filter(p =>
+      p.s.n === state.origin ||
+      (state.boundary && state.boundary.has(p.s.n)) ||
+      p.s.ln.length > 1
+    ).sort((a, b) => {
+      const rk = x => (state.boundary && state.boundary.has(x.s.n) ? 0 : 1);
+      return rk(a) - rk(b) || a.d - b.d;
+    });
+    limit = W < 520 ? 26 : 44;
+  }
+  const placed = [];
+  const placedPts = [];
+  const fs = W < 520 ? 10 : 11;
+  const minGap = W < 520 ? 15 : 18;
+  for(const p of stationEls){
+    p.txt.textContent = '';
+    p.txt.setAttribute('font-weight', '400');
+    p.txt.setAttribute('fill', '#c3d2e2');
+  }
+  let count = 0;
+  for(const p of cands){
+    if(count >= limit) break;
+    const sx = (p.mx - state.view.mx) * s + cx;
+    const sy = (state.view.my - p.my) * s + cy;
+    if(sx < -40 || sx > W + 40 || sy < -20 || sy > H + 20) continue;
+    const isO = p.s.n === state.origin;
+    const tw = p.s.n.length * fs + 3;
+    let x = sx + (isO ? 28 : 11);
+    if(x + tw > W - 4) x = sx - tw - 6;
+    if(x < 2) x = sx + 11;
+    const box = [x - 1, sy - fs * 0.75, x + tw, sy + fs * 0.75];
+    let bad = false;
+    for(const b of placed){
+      if(box[0] < b[2] && box[2] > b[0] && box[1] < b[3] && box[3] > b[1]){ bad = true; break; }
+    }
+    if(!bad){
+      for(const q of placedPts){
+        if(Math.hypot(q.x - sx, q.y - sy) < minGap){ bad = true; break; }
+      }
+    }
+    if(bad) continue;
+    placed.push(box);
+    placedPts.push({ x: sx, y: sy });
+    p.txt.textContent = p.s.n;
+    p.txt.setAttribute('x', x.toFixed(1));
+    p.txt.setAttribute('y', (sy + 3.5).toFixed(1));
+    if(isO){
+      p.txt.setAttribute('font-size', 12);
+      p.txt.setAttribute('font-weight', '700');
+      p.txt.setAttribute('fill', '#ffffff');
+    }else if(fp && p.s.n === fp[fp.length - 1]){
+      p.txt.setAttribute('font-size', 12);
+      p.txt.setAttribute('font-weight', '700');
+      p.txt.setAttribute('fill', '#eafaff');
+    }else if(fp){
+      p.txt.setAttribute('font-size', fs);
+      p.txt.setAttribute('fill', '#a8d8f0');
+    }else{
+      p.txt.setAttribute('font-size', fs);
+    }
+    count++;
+  }
+}
+
+/* ---------- 交互 ---------- */
+function setOrigin(name, keepTier, instant, doFit){
+  if(!byName.has(name)) return;
+  state.focusPath = null; state.focusLines = null;   // 起点变了，原路径失效
+  state.preFocus = null;
+  computeOrigin(name);
+  if(!keepTier) state.tier = null;
+  if(state.tier && !stationEls.some(p => p.price === state.tier && p.s.n !== name)) state.tier = null;
+  const o = byName.get(name);
+  document.getElementById('oName').textContent = name;
+  document.getElementById('oLines').innerHTML =
+    o.ln.map(n => '<span style="background:' + (LINE_COLOR[n] || '#555') + '">' + n + '</span>').join('');
+  renderHotChips(name);
+  buildTiers(!instant);
+  renderOriginStats();
+  if(state.tab === 'all') renderAllList();
+  if(state.tab === 'rank' && rankRows) renderRank(false);
+  // 换起点默认不动视野，只重算颜色与标签；需要归位时点地图右上角「重置视野」
+  if(doFit){
+    state.pan = { x: 0, y: 0 };
+    fitView(!instant);
+  }else{
+    render();
+  }
+}
+
+function setTier(p){
+  if(state.expanded === p){ state.tier = null; state.expanded = null; }
+  else { state.tier = p; state.expanded = p; }
+  state.pan = { x: 0, y: 0 };
+  buildTiers(true);
+  fitView(true);
+}
+
+function buildTiers(doScroll){
+  const box = document.getElementById('tiers');
+  const groups = new Map();
+  for(const p of stationEls){
+    if(p.s.n === state.origin) continue;
+    if(!groups.has(p.price)) groups.set(p.price, []);
+    groups.get(p.price).push(p);
+  }
+  const prices = [...groups.keys()].sort((a, b) => a - b);
+
+  let html = '<div class="tier ovrow ' + (!state.tier ? 'open' : '') + '" data-ov="1">' +
+      '<div class="trow">' +
+        '<span class="bar" style="background:linear-gradient(180deg,#4ea8ff,#fbbf24,#dc2626)"></span>' +
+        '<span class="mid">' +
+          '<span class="p">全览 <i>0–' + Math.ceil(maxD) + ' km</i></span>' +
+          '<span class="c">一次看完整个票价梯度</span>' +
+        '</span>' +
+        '<span class="n"><b>' + (stationEls.length - 1) + '</b> 站</span>' +
+      '</div></div>';
+
+  for(const p of prices){
+    const list = groups.get(p).sort((a, b) => a.d - b.d);
+    const lo = tierRange(p)[0], hi = tierRange(p)[1];
+    const open = state.expanded === p;
+    const far = list[list.length - 1];
+    html += '<div class="tier ' + (open ? 'open' : '') + ' ' + (state.tier === p ? 'cur' : '') + '" data-p="' + p + '">' +
+      '<div class="trow">' +
+        '<span class="bar" style="background:' + colorOf(p) + '"></span>' +
+        '<span class="mid">' +
+          '<span class="p">' + p + ' 元 <i>' + lo + '–' + hi + ' km</i></span>' +
+          '<span class="c">最远 ' + far.s.n + ' · ' + far.d.toFixed(1) + ' km</span>' +
+        '</span>' +
+        '<span class="n"><b>' + list.length + '</b> 站</span>' +
+      '</div>' +
+      (open ? '<div class="tbody">' +
+        '<div class="far">这一档（轨道 ' + lo + '–' + hi + ' km）共 <b>' + list.length + '</b> 座车站 · 地图上的闭合圈就是这一档的边界，圈内都是 <b>' + p + ' 元</b>以内能到的地方</div>' +
+        '<div class="slist">' + list.map(x =>
+          '<button data-s="' + x.s.n + '" class="' + (x.s.ln.length > 1 ? 'xf' : '') + '">' + x.s.n + '</button>').join('') + '</div>' +
+      '</div>' : '') +
+    '</div>';
+  }
+  box.innerHTML = html || '<div class="empty">这里没有数据</div>';
+  box.querySelectorAll('.trow').forEach(el => {
+    el.addEventListener('click', () => {
+      const par = el.parentElement;
+      if(par.dataset.ov){
+        state.tier = null; state.expanded = null; state.pan = { x: 0, y: 0 };
+        buildTiers(true); fitView(true); return;
+      }
+      setTier(+par.dataset.p);
+    });
+  });
+  box.querySelectorAll('.slist button').forEach(el => {
+    el.addEventListener('click', e => { e.stopPropagation(); setOrigin(el.dataset.s, true); });
+  });
+  if(doScroll){
+    const openEl = box.querySelector('.tier.open');
+    if(openEl) openEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+  updateBadge();
+  buildLegend();
+}
+
+/* ---------- 全部车站清单 ---------- */
+function setTab(t){
+  if(t !== 'all' && state.focusPath){ state.focusPath = null; state.focusLines = null; state.preFocus = null; render(); }
+  state.tab = t;
+  document.querySelector('.app').classList.remove('mini');   // 切 tab 说明要看列表，顺手把面板展开
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  document.getElementById('tiers').classList.toggle('hide', t !== 'tier');
+  document.getElementById('allList').classList.toggle('hide', t !== 'all');
+  document.getElementById('rankPanel').classList.toggle('hide', t !== 'rank');
+  if(t === 'all') renderAllList();
+  if(t === 'rank'){ ensureRank(function(){ if(state.tab === 'rank') renderRank(true); }); renderRank(true); }
+}
+
+function renderAllList(){
+  const box = document.getElementById('allList');
+  const list = stationEls.filter(p => p.s.n !== state.origin).sort((a, b) => a.d - b.d);
+  document.getElementById('allCount').textContent = list.length;
+  const keep = box.scrollTop;
+  box.innerHTML = list.map(p => {
+    const chips = p.route.map(s =>
+      '<span class="rt" style="background:' + (LINE_COLOR[s.line] || '#555') + '">' + s.line + '</span>'
+    ).join('<span class="arw">›</span>');
+    const xf = p.route.length > 1
+      ? '<span class="tp xf">换乘 ' + (p.route.length - 1) + ' 次</span>'
+      : '<span class="tp">直达</span>';
+    const detail = p.route.map(s =>
+      '<div class="step"><i style="background:' + (LINE_COLOR[s.line] || '#555') + '"></i>' +
+      '<b>' + s.line + '</b>&nbsp;' + s.from + ' → ' + s.to +
+      '<span class="km">' + s.stops + ' 站 · ' + s.km.toFixed(1) + ' km</span></div>'
+    ).join('');
+    return '<div class="srow" data-n="' + p.s.n + '">' +
+        '<div class="sl1"><span class="sname">' + p.s.n + '</span>' +
+          '<span class="smeta"><b>' + p.d.toFixed(1) + '</b> km · <em style="color:' + colorOf(p.price) + '">' +
+            p.price + ' 元</em></span></div>' +
+        '<div class="sl2">' + chips + xf + '</div>' +
+        '<div class="sdetail">' + detail +
+          (p.route.length > 1 ? '<div class="note">计费只按最短里程，与换乘几次无关</div>' : '') +
+          '<button class="seto" data-o="' + p.s.n + '">以此为起点</button></div>' +
+      '</div>';
+  }).join('');
+  box.scrollTop = keep;
+}
+
+document.querySelectorAll('.tabs button').forEach(b =>
+  b.addEventListener('click', () => setTab(b.dataset.tab)));
+
+document.getElementById('allList').addEventListener('click', e => {
+  const btn = e.target.closest('.seto');
+  if(btn){ setOrigin(btn.dataset.o); return; }
+  const row = e.target.closest('.srow');
+  if(!row) return;
+  const willOpen = !row.classList.contains('open');
+  // 单选：同时只展开一行
+  document.querySelectorAll('.srow.open').forEach(r => { if(r !== row) r.classList.remove('open'); });
+  row.classList.toggle('open', willOpen);
+  const p = willOpen ? proj.get(row.dataset.n) : null;
+  const next = (p && p.path && p.path.length > 1) ? p.path : null;
+  if(next){
+    // 第一次展开时记住原视野
+    if(!state.focusPath) state.preFocus = { mx: state.view.mx, my: state.view.my, scale: state.scale };
+    state.focusPath = next;
+    state.focusLines = p.pathLines || [];
+    updateBadge();
+    if(!needFit(next)) render();
+    else fitToPath(next, true);
+    // 展开后确保这一行仍留在面板可视区
+    setTimeout(() => row.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 60);
+  }else{
+    state.focusPath = null; state.focusLines = null;
+    updateBadge();
+    if(state.preFocus){
+      const v = state.preFocus; state.preFocus = null;
+      animateView({ mx: v.mx, my: v.my, scale: v.scale });
+    }else render();
+  }
+});
+
+document.getElementById('rkList').addEventListener('click', e => {
+  const row = e.target.closest('.rkrow');
+  if(row) setOrigin(row.dataset.n);
+});
+
+document.getElementById('rkSort').addEventListener('click', e => {
+  rankDesc = !rankDesc;
+  e.currentTarget.textContent = rankDesc ? '由高到低 ↓' : '由低到高 ↑';
+  document.getElementById('rkList').scrollTop = 0;
+  renderRank(false);
+});
+
+const btnLabel = document.getElementById('btnLabel');
+const btnReset = document.getElementById('btnReset');
+// 手机上地图窄，按钮文字要短一截
+function syncBtnText(){
+  const on = state.labelMode === 'xfer';
+  const m = isMobile();
+  btnLabel.textContent = m ? (on ? '仅换乘' : '自动') : (on ? '站名 · 仅换乘' : '站名 · 自动');
+  btnReset.textContent = m ? '重置' : '重置视野';
+}
+btnLabel.addEventListener('click', () => {
+  state.labelMode = state.labelMode === 'xfer' ? 'auto' : 'xfer';
+  btnLabel.classList.toggle('on', state.labelMode === 'xfer');
+  syncBtnText();
+  render();
+});
+btnReset.addEventListener('click', () => {
+  state.pan = { x: 0, y: 0 };
+  fitView(true);
+});
+
+// 点「均价排名」统计格直接跳到排行
+document.getElementById('stRank').addEventListener('click', () => setTab('rank'));
+
+function renderHotChips(cur){
+  const box = document.getElementById('hotChips');
+  box.innerHTML = HOT.filter(n => byName.has(n)).map(n =>
+    '<button data-n="' + n + '" class="' + (n === cur ? 'act' : '') + '">' + n + '</button>').join('');
+  box.querySelectorAll('button').forEach(b =>
+    b.addEventListener('click', () => setOrigin(b.dataset.n)));
+}
+
+const tip = document.getElementById('tip');
+svg.addEventListener('pointermove', e => {
+  if(e.pointerType !== 'mouse') return;
+  const i = e.target.getAttribute && e.target.getAttribute('data-i');
+  const rb = document.getElementById('mapwrap').getBoundingClientRect();
+  if(i === null || i === undefined){ tip.classList.remove('on'); svg.style.cursor = 'grab'; return; }
+  const p = stationEls[+i];
+  svg.style.cursor = 'pointer';
+  tip.innerHTML = '<div class="tn">' + p.s.n + '</div>' +
+    '<div class="tr">' + p.s.ln.join(' / ') + '</div>' +
+    '<div class="tr">轨道 ' + p.d.toFixed(1) + ' km · ' + p.hops + ' 站 · <span class="tp" style="color:' + colorOf(p.price) + '">' + p.price + ' 元</span></div>';
+  tip.style.left = (e.clientX - rb.left) + 'px';
+  tip.style.top = (e.clientY - rb.top) + 'px';
+  tip.classList.add('on');
+});
+svg.addEventListener('mouseleave', () => tip.classList.remove('on'));
+
+document.getElementById('mapwrap').addEventListener('wheel', e => {
+  e.preventDefault();
+  const dy = e.deltaMode === 1 ? e.deltaY * 18 : e.deltaY;
+  const f = Math.exp(-dy * 0.0016);
+  const rb = svg.getBoundingClientRect();
+  const cpx = e.clientX - rb.left - W / 2;
+  const cpy = e.clientY - rb.top - H / 2;
+  const ns = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, state.scale * f));
+  if(ns === state.scale) return;
+  const ratio = ns / state.scale;
+  // 以光标为锚点：让光标下的那一点在缩放前后停在原地
+  state.pan.x = cpx - (cpx - state.pan.x) * ratio;
+  state.pan.y = cpy - (cpy - state.pan.y) * ratio;
+  state.scale = ns;
+  render();
+}, { passive: false });
+
+/* ---------- 手势：单指平移 / 双指缩放 / 轻点换起点 ---------- */
+const ptrs = new Map();
+let g = null;                        // 当前手势
+let downAt = 0;
+
+function ptrMid(){
+  const v = [...ptrs.values()];
+  return { x: (v[0].x + v[1].x) / 2, y: (v[0].y + v[1].y) / 2 };
+}
+function ptrDist(){
+  const v = [...ptrs.values()];
+  return Math.hypot(v[1].x - v[0].x, v[1].y - v[0].y) || 1;
+}
+
+svg.addEventListener('pointerdown', e => {
+  ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if(ptrs.size === 1){
+    downAt = performance.now();
+    g = { type: 'pan', x: e.clientX, y: e.clientY, px: state.pan.x, py: state.pan.y, moved: 0 };
+    svg.style.cursor = 'grabbing';
+  }else if(ptrs.size === 2){
+    // 记住两指中点下面的那个地理坐标，缩放全程让它钉在原地
+    const m = ptrMid(), rb = svg.getBoundingClientRect();
+    const ax = m.x - rb.left, ay = m.y - rb.top;
+    g = {
+      type: 'pinch',
+      d0: ptrDist(),
+      wx: state.view.mx + (ax - W / 2 - state.pan.x) / state.scale,
+      wy: state.view.my - (ay - H / 2 - state.pan.y) / state.scale,
+      s0: state.scale,
+      moved: 999,
+    };
+  }
+});
+
+window.addEventListener('pointermove', e => {
+  if(!ptrs.has(e.pointerId)) return;
+  ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if(!g) return;
+  if(g.type === 'pinch' && ptrs.size >= 2){
+    const ns = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, g.s0 * (ptrDist() / g.d0)));
+    const m = ptrMid(), rb = svg.getBoundingClientRect();
+    state.scale = ns;
+    state.view = {
+      mx: g.wx - (m.x - rb.left - W / 2 - state.pan.x) / ns,
+      my: g.wy + (m.y - rb.top - H / 2 - state.pan.y) / ns,
+    };
+    render();
+  }else if(g.type === 'pan'){
+    const dx = e.clientX - g.x, dy = e.clientY - g.y;
+    g.moved = Math.max(g.moved, Math.hypot(dx, dy));
+    state.pan.x = g.px + dx;
+    state.pan.y = g.py + dy;
+    render();
+  }
+});
+
+function endPointer(e){
+  ptrs.delete(e.pointerId);
+  if(!g) return;
+  if(ptrs.size === 1 && g.type === 'pinch'){
+    // 双指抬起一根，剩下的那根接着用来平移（并且不再算轻点）
+    const v = [...ptrs.values()][0];
+    g = { type: 'pan', x: v.x, y: v.y, px: state.pan.x, py: state.pan.y, moved: 999 };
+    return;
+  }
+  if(ptrs.size > 0) return;
+  const tap = g.type === 'pan' && g.moved < 10 && performance.now() - downAt < 600;
+  g = null;
+  svg.style.cursor = 'grab';
+  if(!tap) return;
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const i = el && el.getAttribute && el.getAttribute('data-i');
+  if(i !== null && i !== undefined) setOrigin(stationEls[+i].s.n);
+}
+window.addEventListener('pointerup', endPointer);
+window.addEventListener('pointercancel', endPointer);
+
+svg.addEventListener('dblclick', e => {
+  if(e.target.getAttribute && e.target.getAttribute('data-i')) return;
+  state.pan = { x: 0, y: 0 };
+  fitView(true);
+});
+
+const qEl = document.getElementById('q');
+const sugEl = document.getElementById('sug');
+const HOT = ['体育西路', '珠江新城', '公园前', '广州南站', '广州塔', '嘉禾望岗', '番禺广场', '祖庙', '佛山西站'];
+const isMobile = () => window.matchMedia('(max-width: 940px)').matches;
+
+function renderSug(list){
+  if(!list.length){ sugEl.classList.remove('on'); sugEl.innerHTML = ''; return; }
+  sugEl.innerHTML = list.map(s =>
+    '<div data-n="' + s.n + '"><span>' + s.n + '</span><small>' + s.ln.join(' / ') + '</small></div>').join('');
+  sugEl.classList.add('on');
+  sugEl.querySelectorAll('div').forEach(d => d.addEventListener('click', () => {
+    qEl.value = ''; sugEl.classList.remove('on'); closeSearch(); setOrigin(d.dataset.n);
+  }));
+}
+
+function search(q){
+  q = q.trim().toLowerCase();
+  // 空输入时给热门站，手机上等于把「热门起点」挪进了搜索面板
+  if(!q){ renderSug(HOT.filter(n => byName.has(n)).map(n => byName.get(n))); return; }
+  const res = DATA.stations.filter(s => {
+    const py = (s.sp || '').toLowerCase();
+    return s.n.includes(q) || py.includes(q) || py.replace(/\s/g, '').includes(q);
+  }).slice(0, 8);
+  renderSug(res);
+}
+qEl.addEventListener('input', e => search(e.target.value));
+qEl.addEventListener('focus', () => search(qEl.value));
+qEl.addEventListener('keydown', e => {
+  if(e.key === 'Enter'){ const f = sugEl.querySelector('div'); if(f) f.click(); }
+  if(e.key === 'Escape'){ sugEl.classList.remove('on'); qEl.blur(); closeSearch(); }
+});
+document.addEventListener('click', e => {
+  if(!e.target.closest('.search') && !e.target.closest('#btnSearch')) sugEl.classList.remove('on');
+});
+
+/* ---------- 手机端：搜索展开 / 规则弹层 ---------- */
+const searchBox = document.getElementById('searchBox');
+const btnSearch = document.getElementById('btnSearch');
+function openSearch(){
+  searchBox.classList.add('expand');
+  btnSearch.classList.add('on');
+  qEl.focus();          // focus 事件会把热门/结果列表带出来
+}
+function closeSearch(){
+  searchBox.classList.remove('expand');
+  btnSearch.classList.remove('on');
+  sugEl.classList.remove('on');
+  qEl.blur();
+}
+btnSearch.addEventListener('click', () => {
+  if(searchBox.classList.contains('expand')) closeSearch();
+  else openSearch();
+});
+document.getElementById('sClose').addEventListener('click', closeSearch);
+
+const rulesModal = document.getElementById('rulesModal');
+document.getElementById('btnInfo').addEventListener('click', () => rulesModal.classList.add('on'));
+// 手机：收起面板换取整屏地图（再点一次展开）。取景交给 ResizeObserver
+document.getElementById('sheetGrip').addEventListener('click', () => {
+  document.querySelector('.app').classList.toggle('mini');
+});
+document.getElementById('mClose').addEventListener('click', () => rulesModal.classList.remove('on'));
+rulesModal.addEventListener('click', e => { if(e.target === rulesModal) rulesModal.classList.remove('on'); });
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape'){ rulesModal.classList.remove('on'); closeSearch(); }
+});
+
+function resize(){
+  const r = document.getElementById('mapwrap').getBoundingClientRect();
+  W = r.width; H = r.height;
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  state.pan = { x: 0, y: 0 };
+}
+// 尺寸真的变了才重设视野：手机上地址栏收起/展开会狂发 resize，
+// 原来每次都会 fitView 把视野打回默认。ResizeObserver 兜住 flex/dvh/横竖屏的所有情况。
+function onBoxChange(){
+  const r = document.getElementById('mapwrap').getBoundingClientRect();
+  if(Math.abs(r.width - W) < 2 && Math.abs(r.height - H) < 2) return;
+  if(r.width < 40 || r.height < 40) return;   // 布局还没稳定，先别按错误尺寸取景
+  resize(); syncBtnText(); fitView(false);
+}
+let rzT = null;
+function scheduleBoxFit(delay){ clearTimeout(rzT); rzT = setTimeout(onBoxChange, delay); }
+window.addEventListener('resize', () => scheduleBoxFit(140));
+// 折叠面板有 220ms 过渡，等它停稳再取景，免得每帧都全量重绘
+if(window.ResizeObserver) new ResizeObserver(() => scheduleBoxFit(90)).observe(document.getElementById('mapwrap'));
+
+function buildLegend(){
+  const set = [...new Set(stationEls.map(p => p.price))].sort((a, b) => a - b);
+  document.getElementById('legend').innerHTML = '<b>票价</b>' + set.map(p =>
+    '<span class="sw' + (state.tier === p ? ' on' : '') + '"><i style="background:' + colorOf(p) + '"></i>' + p + '元</span>').join('');
+}
+
+// 地图左上角的当前档位说明
+function updateBadge(){
+  const el = document.getElementById('tierBadge');
+  // 展开某条路径时地图上画的是路线不是票价圈，档位说明先让位
+  if(!state.tier || (state.focusPath && state.focusPath.length > 1)){
+    el.classList.remove('on'); el.innerHTML = ''; return;
+  }
+  const lo = tierRange(state.tier)[0], hi = tierRange(state.tier)[1];
+  const n = stationEls.filter(p => p.price === state.tier && p.s.n !== state.origin).length;
+  el.classList.add('on');
+  el.innerHTML = '<i style="background:' + colorOf(state.tier) + '"></i>' +
+    '<b>' + state.tier + ' 元档</b>' +
+    '<small>' + lo + '–' + hi + ' km · ' + n + ' 站</small>' +
+    '<em>点此回全览</em>';
+}
+document.getElementById('tierBadge').addEventListener('click', () => {
+  state.tier = null; state.expanded = null; state.pan = { x: 0, y: 0 };
+  buildTiers(true); fitView(true);
+});
+
+resize();
+setOrigin('体育西路', true, true, true);
+buildLegend();
+syncBtnText();
+document.getElementById('rankCount').textContent = DATA.stations.length;
+document.getElementById('hdrN').textContent = DATA.stations.length;
+document.getElementById('stAvg').title = '从该站到其余 ' + (DATA.stations.length - 1) + ' 座车站的票价算术平均';
+document.getElementById('stRank').title = '全部 ' + DATA.stations.length + ' 座车站按平均票价由低到高排名，点开查看完整排行';
+document.getElementById('allCount').textContent = DATA.stations.length - 1;
+// 首屏画完后，后台把全部起点的均价排名算好（约 0.2 秒）
+setTimeout(() => ensureRank(), 300);
+
+// 手机上首次进入给一次操作提示
+if(window.matchMedia('(max-width: 940px)').matches){
+  const t = document.getElementById('toast');
+  t.textContent = '双指缩放 · 拖动平移 · 点站点换起点';
+  setTimeout(() => t.classList.add('on'), 700);
+  setTimeout(() => t.classList.remove('on'), 5400);
+  // 首帧布局稳定后再校正一次视野（手机地址栏会改变可视高度）
+  setTimeout(() => { const r = document.getElementById('mapwrap').getBoundingClientRect();
+    if(Math.abs(r.height - H) > 4 || Math.abs(r.width - W) > 4){ resize(); fitView(false); } }, 320);
+}
+// 供自动化回归使用（不影响页面行为）
+window.__m = { state, getIsoRing, setOrigin, setTier, buildField, stationEls, proj, wx, wy, WU };
+})();
+</script>
+</body>
+</html>

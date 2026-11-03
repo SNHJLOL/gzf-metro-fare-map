@@ -1,0 +1,9 @@
+# 回归测试截图（体积大，本地生成）
+shots/
+# 本地项目记忆与发布卡片
+.workbuddy/
+*.genie
+# 构建产物（由 build.js 重新生成）
+dist/
+# 依赖
+node_modules/

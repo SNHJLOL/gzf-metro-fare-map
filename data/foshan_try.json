@@ -1,0 +1,25 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<html>
+<head><title>502 Bad Gateway</title></head>
+<body>
+<center><h1>502 Bad Gateway</h1></center>
+ Sorry for the inconvenience.<br/>
+Please report this message and include the following information to us.<br/>
+Thank you very much!</p>
+<table>
+<tr>
+<td>URL:</td>
+<td>https://map.amap.com/service/subway?_1=&amp;srhdata=440600_drw_foshan.json</td>
+</tr>
+<tr>
+<td>Server:</td>
+<td>gaode-aserver-ingress033035029123.unszyun.sa128</td>
+</tr>
+<tr>
+<td>Date:</td>
+<td>2026/11/02 20:39:33</td>
+</tr>
+</table>
+<hr/>Powered by Tengine/AServer-Ingress/3.0.46<hr><center>tengine ingress</center>
+</body>
+</html>
